@@ -30,6 +30,14 @@ void hanoi(int n, char source, char aux, char dest) {
     hanoi(n - 1, aux, source, dest);
 }
 
+void reverseArray(int arr[], int start, int end) {
+    if(start >= end){
+        return;
+    } 
+    swap(arr[start], arr[end]);
+    reverseArray(arr, start + 1, end - 1);
+}
+
 
 int main() {
    int factorialResult = factorial(5);
@@ -71,31 +79,12 @@ int main() {
 
     cout<< "\n";
 
-    int nums[] = {1,2,3,4,5};
-    int size = sizeof(nums) / sizeof(nums[0]);
-
-    int begin = 0;
-    int end = size - 1;
-
-    cout<< "\n";
-    cout<< "Original array: ";
-    for(int i = 0; i < size;i++){
-          cout << nums[i] << " ";
+    int arr[] = {1, 2, 3, 4, 5};
+    int n1 = sizeof(arr) / sizeof(arr[0]);
+    reverseArray(arr, 0, n1 - 1);
+    for (int i = 0; i < n1; i++) {
+        cout << arr[i] << " ";
     }
-
-    while (begin < end){
-        swap(nums[begin], nums[end]);
-        begin++;
-        end--;
-    }
-
-    cout<< "\n";
-    cout<< "Revered array: ";
-    for(int i = 0; i < size;i++){
-          cout << nums[i] << " ";
-    }
-
-
     
 
     // Deletion
