@@ -20,6 +20,12 @@ The course runs in **C++**, but some problems were too fun not to rewrite in **J
 
 ---
 
+## My Explanations
+
+![Recursive algorithms explanation](photo_2026-03-01_23-18-38.jpg)
+
+---
+
 ## Languages
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white)

@@ -4,29 +4,27 @@ using namespace std;
 int factorial(int num){
     if(num == 0){
         return 1;
-    } else {
-        return num * factorial(num - 1);
-    } 
+    }
+        return num * factorial(num - 1); 
 }
 
 int fibonacci(int num){
-    if(num == 0){
-        return 0;
-    } else if(num == 1){
-        return 1;
-    } else {
-        return fibonacci(num - 1) + fibonacci(num - 2); 
-    }
+    if(num <= 1){
+        return num;
+    } 
+    return fibonacci(num - 1) + fibonacci(num - 2); 
 }
-
+//      disk num      A.          B.         C
 void hanoi(int n, char source, char aux, char dest) {
     if (n == 1) {
     std::cout << "Move disk 1 from " << source << " to " << dest << std::endl;
         return;
     }
+   //              A.     C.    B
     hanoi(n - 1, source, dest, aux);
     std::cout << "Move disk " << n << " from " << source << " to " <<
     dest << std::endl;
+   //             B     A      C       
     hanoi(n - 1, aux, source, dest);
 }
 
@@ -40,7 +38,7 @@ void reverseArray(int arr[], int start, int end) {
 
 
 int main() {
-   int factorialResult = factorial(5);
+   int factorialResult = factorial(4);
     cout << "factorialResult: ";
     cout << factorialResult;
 
