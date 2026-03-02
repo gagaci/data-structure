@@ -24,6 +24,8 @@ The course runs in **C++**, but some problems were too fun not to rewrite in **J
 
 ![Recursive algorithms explanation](photo_2026-03-01_23-18-38.jpg)
 
+![DSA notes](photo_2026-03-02_01-49-13.jpg)
+
 ---
 
 ## Interactive Explanations
