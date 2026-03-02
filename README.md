@@ -28,10 +28,6 @@ The course runs in **C++**, but some problems were too fun not to rewrite in **J
 
 ---
 
-## Interactive Explanations
-
-run 'tower-of-hanoi-visualizer.html' to see how hanoi puzzle is solved using recursive function
-
 ## Languages
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white)
