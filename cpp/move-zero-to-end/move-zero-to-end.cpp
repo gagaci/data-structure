@@ -1,7 +1,6 @@
 #include <iostream>
 using namespace std;
 
-
 void moveZerosToTheEnd(int arr[], int n){
     int nonZeroIndex = 0;
 
@@ -12,14 +11,10 @@ void moveZerosToTheEnd(int arr[], int n){
             arr[nonZeroIndex] = temp;
             nonZeroIndex++;
         }
-
     }
-
-
 }
 
 int main() {
-
     int arr[] {1,0,2,0,5,0,15};
 
     int length = sizeof(arr) / sizeof(arr[0]);
@@ -34,7 +29,7 @@ int main() {
     cout << "after nonzero method array: ";
 
     moveZerosToTheEnd(arr, length);
-    for(int i = 0; i < length -  1; i++){
+    for(int i = 0; i < length; i++){
         cout << arr[i] << " ";
     }
 

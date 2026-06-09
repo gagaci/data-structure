@@ -3,35 +3,364 @@
 > My notes in code form — from **DSA Course 1**.
 
 The course runs in **C++**, but some problems were too fun not to rewrite in **Java** too.
-
----
-
-## What's inside
-
-| File | Language | Topic |
-|---|---|---|
-| `solutions.cpp` | C++ | Recursion — factorial, fibonacci, Tower of Hanoi, array reverse & rotation |
-| `move-zero-to-end.cpp` | C++ | Array — move all zeros to the end in-place |
-| `LinkedList.cpp` | C++ | Linked list — traverse, search, insert (begin / end / position) |
-| `MusicLinkedList.cpp` | C++ | Linked list — music playlist (in progress) |
-| `stack_array.cpp` | C++ | Stack — array-backed implementation |
-| `stack_linked_list.cpp` | C++ | Stack — linked list implementation |
-| `PlayList.java` + `Node.java` + `Main.java` | Java | Linked list — full music playlist with insert, delete, search, play next |
-
----
-
-## My Explanations
-
-![Recursive algorithms explanation](photo_2026-03-01_23-18-38.jpg)
-
-![DSA notes](photo_2026-03-02_01-49-13.jpg)
-
----
-
-## Languages
+Every solution lives in its own folder, is cleaned up, and **compiles & runs on its own**.
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=flat&logo=cplusplus&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
+
+---
+
+## Repository structure
+
+```
+.
+├── cpp/
+│   ├── recursion/            factorial, Fibonacci, Tower of Hanoi, array ops
+│   │   ├── recursion.cpp
+│   │   └── explanation.jpg
+│   ├── move-zero-to-end/     move all zeros to the end, in place
+│   │   └── move-zero-to-end.cpp
+│   ├── linked-list/          singly linked list: traverse, search, insert
+│   │   ├── LinkedList.cpp
+│   │   └── explanation.jpg
+│   ├── music-playlist/       a playlist modeled as a linked list
+│   │   └── MusicLinkedList.cpp
+│   ├── stack-array/          stack backed by an array
+│   │   └── stack_array.cpp
+│   ├── stack-linked-list/    stack backed by a linked list
+│   │   └── stack_linked_list.cpp
+│   └── queue/                queue backed by an array
+│       └── queue.cpp
+└── java/
+    ├── music-playlist/                the playlist, ported to Java
+    │   ├── Main.java
+    │   ├── Node.java
+    │   └── PlayList.java
+    ├── find-middle-of-linked-list/    tortoise-and-hare middle finder
+    │   ├── FindMiddleOfLinkedList.java
+    │   └── Node.java
+    ├── merge-two-sorted-linked-list/  recursively merge two sorted lists
+    │   ├── MergeTwoSortedLinkedList.java
+    │   ├── ListNode.java
+    │   └── explanation.png
+    └── palindrome-linked-list/        check a list reads the same both ways
+        ├── PalindromeLinkedList.java
+        └── ListNode.java
+```
+
+---
+
+## Getting started
+
+You only need a **C++17 compiler** (`g++` or `clang++`) and a **JDK** (for the Java solution).
+
+**Run any C++ solution:**
+
+```bash
+cd cpp/<folder>
+g++ -std=c++17 -o solution.out *.cpp && ./solution.out
+```
+
+**Run the Java solution:**
+
+```bash
+cd java/music-playlist
+javac *.java && java Main
+```
+
+> Compiled binaries, `*.out`, and `*.class` files are git-ignored, so building in place keeps the repo clean.
+
+---
+
+## Overview
+
+| # | Topic | Language | Folder |
+|---|---|---|---|
+| 1 | Recursion — factorial, Fibonacci, Tower of Hanoi, array reverse & insert | C++ | [`cpp/recursion`](cpp/recursion) |
+| 2 | Move all zeros to the end, in place | C++ | [`cpp/move-zero-to-end`](cpp/move-zero-to-end) |
+| 3 | Singly linked list — traverse, search, insert | C++ | [`cpp/linked-list`](cpp/linked-list) |
+| 4 | Music playlist — linked list | C++ | [`cpp/music-playlist`](cpp/music-playlist) |
+| 5 | Stack — array-backed | C++ | [`cpp/stack-array`](cpp/stack-array) |
+| 6 | Stack — linked list | C++ | [`cpp/stack-linked-list`](cpp/stack-linked-list) |
+| 7 | Queue — array-backed | C++ | [`cpp/queue`](cpp/queue) |
+| 8 | Music playlist — linked list | Java | [`java/music-playlist`](java/music-playlist) |
+| 9 | Find the middle of a linked list | Java | [`java/find-middle-of-linked-list`](java/find-middle-of-linked-list) |
+| 10 | Merge two sorted linked lists | Java | [`java/merge-two-sorted-linked-list`](java/merge-two-sorted-linked-list) |
+| 11 | Palindrome linked list | Java | [`java/palindrome-linked-list`](java/palindrome-linked-list) |
+
+---
+
+## C++ solutions
+
+### 1. Recursion · [`cpp/recursion`](cpp/recursion)
+
+Four canonical recursive routines plus one iterative array example for contrast.
+
+- **What it does:** `factorial`, `fibonacci`, Tower of Hanoi (`hanoi`), in-place `reverseArray`, and an iterative insert-by-shifting demo.
+- **How it works:** each recursive function calls itself on a smaller subproblem until it hits a base case, then the results unwind back up the call stack. `factorial(n)` stops at `n == 0`; `fibonacci(n)` stops at `n <= 1`; `hanoi(n, …)` moves the top `n-1` disks aside, moves disk `n`, then moves the `n-1` disks back; `reverseArray` swaps the outer pair and recurses inward.
+- **Complexity:** factorial `O(n)`, Fibonacci `O(2ⁿ)` (naive), Tower of Hanoi `O(2ⁿ)` moves, reverse `O(n)`. Stack depth `O(n)`.
+
+```bash
+cd cpp/recursion
+g++ -std=c++17 -o recursion.out recursion.cpp && ./recursion.out
+```
+
+```text
+Factorial of 4: 24
+
+Fibonacci of 6: 8
+
+Tower of Hanoi moves for 3 disks:
+Move disk 1 from A to C
+Move disk 2 from A to B
+Move disk 1 from C to B
+Move disk 3 from A to C
+Move disk 1 from B to A
+Move disk 2 from B to C
+Move disk 1 from A to C
+
+Array insertion, adding '7' at index 1: 1 7 2 3 4
+Reversed array: 5 4 3 2 1
+```
+
+**Hand-drawn explanation:**
+
+![Recursion — factorial, Fibonacci, Tower of Hanoi](cpp/recursion/explanation.jpg)
+
+---
+
+### 2. Move Zeros to End · [`cpp/move-zero-to-end`](cpp/move-zero-to-end)
+
+A classic two-pointer / stable-partition problem.
+
+- **What it does:** moves every `0` to the end of the array while keeping the order of the non-zero elements, in place.
+- **How it works:** a write pointer `nonZeroIndex` marks the next slot for a non-zero value. A single pass swaps each non-zero element forward, so non-zeros stay in order and zeros are pushed to the back.
+- **Complexity:** time `O(n)`, space `O(1)`.
+
+```bash
+cd cpp/move-zero-to-end
+g++ -std=c++17 -o move.out move-zero-to-end.cpp && ./move.out
+```
+
+```text
+original array: 1 0 2 0 5 0 15
+after nonzero method array: 1 2 5 15 0 0 0
+```
+
+---
+
+### 3. Singly Linked List · [`cpp/linked-list`](cpp/linked-list)
+
+A list built from `Node { int data; Node* next; }`, accessed through a head pointer.
+
+- **What it does:** `traverse`, `search`, and insert at the **beginning**, **end**, and an **arbitrary position**.
+- **How it works:** `insertBegin` links a new node in front of `head` and updates `head` (passed by reference so the change persists). `insertEnd` walks to the last node and links there. `insertAtPosition` advances to the `(pos-1)`th node and splices the new node in, guarding against an out-of-range position.
+- **Complexity:** traverse/search `O(n)`, insert-begin `O(1)`, insert-end / insert-at-position `O(n)`.
+
+```bash
+cd cpp/linked-list
+g++ -std=c++17 -o linkedlist.out LinkedList.cpp && ./linkedlist.out
+```
+
+```text
+Initial list: 1 2 3
+search(2) -> found
+After insertEnd(5): 1 2 3 5
+After insertBegin(4): 4 1 2 3 5
+After insertAtPosition(3, 2): 4 3 1 2 3 5
+```
+
+**Hand-drawn explanation:**
+
+![Linked list — node structure and operations](cpp/linked-list/explanation.jpg)
+
+---
+
+### 4. Music Playlist (C++) · [`cpp/music-playlist`](cpp/music-playlist)
+
+A singly linked list where each node is a song (name, artist, duration). This is the C++ twin of the Java solution below.
+
+- **What it does:** `insertNewSong` (front insert), `deleteSongByName`, `searchSongByName`, `playNextSong`, `countTotalNum`, and `displayPlaylist`.
+- **How it works:** the `Playlist` wraps a single `head` pointer; front insertion is `O(1)`, while delete/search/count walk the chain. `deleteSongByName` handles the empty-list and head-match cases, then relinks `prev->next` around the matched node.
+- **Complexity:** insert `O(1)`; delete / search / count / display `O(n)`.
+
+```bash
+cd cpp/music-playlist
+g++ -std=c++17 -o playlist.out MusicLinkedList.cpp && ./playlist.out
+```
+
+```text
+Song name D / artist DD / duration 1
+Song name Z / artist ZZ / duration 1
+Song name X / artist XX / duration 1
+
+Deleted song name Y
+Displaying next song of : D  ->  Z (ZZ, 1)
+Song was found: X (XX, 1)
+Total musics in playlist: 3
+```
+
+---
+
+### 5. Stack — Array-backed · [`cpp/stack-array`](cpp/stack-array)
+
+A fixed-capacity **LIFO** stack over a dynamically allocated array.
+
+- **What it does:** `push`, `pop`, `peek`, `isEmpty`, with overflow and underflow guards.
+- **How it works:** a `top` index (starting at `-1`) tracks the current top. `push` rejects a full stack; `pop`/`peek` return `-1` on an empty stack instead of reading out of bounds.
+- **Complexity:** `O(1)` per operation; `O(n)` space for the backing array.
+
+```bash
+cd cpp/stack-array
+g++ -std=c++17 -o stack.out stack_array.cpp && ./stack.out
+```
+
+```text
+Peek: 30
+Pop: 30
+Pop: 20
+Peek: 10
+Is Empty: 0
+Is Empty: 1
+Stack Underflow
+Stack Overflow
+```
+
+---
+
+### 6. Stack — Linked List · [`cpp/stack-linked-list`](cpp/stack-linked-list)
+
+The same **LIFO** stack, but dynamically sized using a linked list — no fixed capacity.
+
+- **What it does:** `push`, `pop`, `peek`, `isEmpty`.
+- **How it works:** a single `top` pointer references the head node. `push` links a new node in front of `top`; `pop` unlinks the top node, frees it with `delete`, and returns its value.
+- **Complexity:** `O(1)` per operation; `O(n)` space for `n` nodes.
+
+```bash
+cd cpp/stack-linked-list
+g++ -std=c++17 -o stack.out stack_linked_list.cpp && ./stack.out
+```
+
+```text
+Peek: 30
+Pop: 30
+Pop: 20
+Peek: 10
+Is Empty: 0
+Is Empty: 1
+Stack Underflow
+```
+
+---
+
+### 7. Queue — Array-backed · [`cpp/queue`](cpp/queue)
+
+A fixed-capacity **FIFO** queue over an array, using a simple count-based strategy.
+
+- **What it does:** `enqueue`, `dequeue`, `getFront`, `getRear`, `isEmpty`, `isFull`.
+- **How it works:** a single `count` tracks the live elements — the front is always index `0` and the rear is `count-1`. `enqueue` appends at `arr[count]`; `dequeue` shifts every element one slot toward the front.
+- **Complexity:** `enqueue` / `getFront` / `getRear` `O(1)`; `dequeue` `O(n)` because of the shift.
+
+```bash
+cd cpp/queue
+g++ -std=c++17 -o queue.out queue.cpp && ./queue.out
+```
+
+```text
+front: 10
+rear: 30
+rear dequeue front: 20
+Queue Overflow
+```
+
+---
+
+## Java solutions
+
+### 8. Music Playlist (Java) · [`java/music-playlist`](java/music-playlist)
+
+The same playlist as solution 4, written in Java across three files: `Node`, `PlayList`, and a `Main` driver.
+
+- **What it does:** `insertNewSong`, `deleteSongByName`, `searchSongByName`, `playNextSong`, `countTotalNum`, `displayPlaylist`.
+- **How it works:** `Node` stores a song and a `next` reference; `PlayList` keeps the head. Insertion prepends in `O(1)`; deletion walks with `curr`/`prev` pointers and relinks around the matched node (using `Objects.equals` for name comparison).
+- **Complexity:** insert `O(1)`; search / delete / count `O(n)`.
+
+```bash
+cd java/music-playlist
+javac *.java && java Main
+```
+
+```text
+Song name D / artist DD / duration 1
+Song name Z / artist ZZ / duration 1
+Song name X / artist XX / duration 1
+
+Deleted song name Y
+Displaying next song of : D  ->  Z (ZZ, 1)
+Song was found: X (XX, 1)
+Total musics in playlist: 3
+```
+
+---
+
+### 9. Find the Middle of a Linked List · [`java/find-middle-of-linked-list`](java/find-middle-of-linked-list)
+
+Returns the middle node of a singly linked list in a single pass.
+
+- **What it does:** finds the middle element without first counting the length.
+- **How it works:** the **tortoise-and-hare** two-pointer technique — `fast` advances two nodes per step, `slow` one. When `fast` reaches the end, `slow` is at the middle. (For an even-length list it returns the second of the two middle nodes.) Ships with its own minimal `Node`.
+- **Complexity:** time `O(n)`, space `O(1)`.
+
+```bash
+cd java/find-middle-of-linked-list
+javac *.java && java FindMiddleOfLinkedList
+```
+
+```text
+middle: 3
+```
+
+---
+
+### 10. Merge Two Sorted Linked Lists · [`java/merge-two-sorted-linked-list`](java/merge-two-sorted-linked-list)
+
+Merges two already-sorted linked lists into one sorted list.
+
+- **What it does:** combines `1→3→5` and `2→4→6` into `1→2→3→4→5→6`.
+- **How it works:** recursion — compare the two heads, take the smaller node, and link it to the merge of the remaining nodes. The base case is when one list is empty. Ships with its own minimal `ListNode`.
+- **Complexity:** time `O(n + m)`, recursion depth `O(n + m)`.
+
+```bash
+cd java/merge-two-sorted-linked-list
+javac *.java && java MergeTwoSortedLinkedList
+```
+
+```text
+merged: 1 2 3 4 5 6
+```
+
+**Hand-drawn explanation:**
+
+![Merge two sorted linked lists](java/merge-two-sorted-linked-list/explanation.png)
+
+---
+
+### 11. Palindrome Linked List · [`java/palindrome-linked-list`](java/palindrome-linked-list)
+
+Checks whether a linked list reads the same forwards and backwards.
+
+- **What it does:** returns `true` if the list is a palindrome, `false` otherwise.
+- **How it works:** find the middle with tortoise-and-hare, reverse the second half in place, then walk the second half against the first half comparing values. Ships with its own minimal `ListNode`.
+- **Complexity:** time `O(n)`, space `O(1)`.
+
+```bash
+cd java/palindrome-linked-list
+javac *.java && java PalindromeLinkedList
+```
+
+```text
+result: false
+```
 
 ---
 
