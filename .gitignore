@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.out
+a.out
+
+# Java build artifacts
+*.class
+
+# Local build directories
+build/
+bin/
+
+# IDE
+.idea/
