@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add Two Numbers · Live Code Walkthrough</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-2: #d2a8ff;
+    --green: #3fb950;
+    --amber: #d29922;
+    --highlight: rgba(88, 166, 255, 0.16);
+    --mono: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 70% -10%, #1b2433 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    padding: 22px 20px 40px;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 0.78rem;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 9px; margin-top: 10px; color: var(--accent-2);
+  }
+
+  /* ---- sticky control bar ---- */
+  .controlbar {
+    position: sticky; top: 0; z-index: 20;
+    margin-top: 16px;
+    background: rgba(13,17,23,0.82);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  button {
+    font-family: var(--sans); font-size: 0.88rem; font-weight: 600;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 15px; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  }
+  button:hover:not(:disabled) { background: #283041; border-color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  button.primary:hover:not(:disabled) { background: #79c0ff; }
+  .progress { margin-left: auto; font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+  .bar { height: 4px; background: var(--panel-2); border-radius: 4px; margin-top: 11px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.25s ease; }
+
+  /* ---- narration ---- */
+  .narration {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 10px;
+    padding: 13px 16px; margin-top: 14px; min-height: 46px; font-size: 0.95rem;
+  }
+  .narration b { color: var(--accent-2); }
+  .narration code { font-family: var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+  /* ---- main grid ---- */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .rightcol { display: flex; flex-direction: column; gap: 16px; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .card.spotlight { border-color: #2f4665; box-shadow: 0 0 0 1px rgba(88,166,255,0.18) inset; }
+  .card .head {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); background: var(--panel-2);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card .head .tag { font-family: var(--mono); text-transform: none; letter-spacing: 0; color: var(--accent); }
+
+  /* ---- code ---- */
+  .code-scroll { max-height: 560px; overflow-y: auto; }
+  pre.code { margin: 0; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
+  .line {
+    display: grid; grid-template-columns: 34px 1fr;
+    padding: 1px 14px 1px 0; white-space: pre;
+    transition: background 0.18s ease; border-left: 3px solid transparent;
+  }
+  .line .ln { color: #4d5666; text-align: right; padding-right: 11px; user-select: none; }
+  .line.active { background: var(--highlight); border-left-color: var(--accent); }
+  .line.active .ln { color: var(--accent); }
+  .tok-key { color: #ff7b72; }
+  .tok-type { color: #ffa657; }
+  .tok-num { color: #79c0ff; }
+  .tok-com { color: #8b949e; font-style: italic; }
+  .tok-fn  { color: #d2a8ff; }
+
+  /* ---- state ---- */
+  .state-body { padding: 14px; }
+  .vars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .var { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .var .k { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+  .var .v { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin-top: 2px; transition: color 0.2s, transform 0.2s; }
+  .var.changed .v { color: var(--green); transform: scale(1.12); }
+  .var.null .v { color: var(--muted); font-size: 0.95rem; }
+  .equation {
+    font-family: var(--mono); font-size: 1.02rem;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; text-align: center; min-height: 22px;
+  }
+  .equation .lit { color: var(--accent); font-weight: 700; }
+  .equation .res { color: var(--green); font-weight: 700; }
+  .equation .car { color: var(--amber); font-weight: 700; }
+
+  /* ---- lists viz ---- */
+  .viz { padding: 16px; }
+  .viz .row { margin-bottom: 16px; }
+  .viz .row:last-child { margin-bottom: 0; }
+  .viz .label { font-family: var(--mono); font-size: 0.78rem; margin-bottom: 10px; }
+  .nodes { display: flex; align-items: center; flex-wrap: wrap; gap: 0; min-height: 60px; }
+  .node-group { display: flex; align-items: center; position: relative; }
+  .node {
+    width: 44px; height: 44px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-weight: 700; font-size: 1.08rem;
+    border: 2px solid var(--border); background: var(--panel-2);
+    position: relative; transition: all 0.25s ease;
+  }
+  .node.dummy { border-style: dashed; color: var(--muted); }
+  .node.l1 { border-color: #388bfd; color: #79c0ff; }
+  .node.l2 { border-color: #db61a2; color: #ff9bce; }
+  .node.res { border-color: var(--green); color: #7ee787; }
+  .node.cursor { box-shadow: 0 0 0 3px rgba(88,166,255,0.40); transform: translateY(-3px); }
+  .node.consumed { opacity: 0.3; }
+  .node.fresh { animation: pop 0.42s ease; }
+  @keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.16); } 100% { transform: scale(1); opacity: 1; } }
+  .arrow { color: #4d5666; padding: 0 7px; font-size: 1.1rem; }
+  .nullcap { color: var(--muted); font-family: var(--mono); font-size: 0.82rem; padding-left: 6px; }
+  .ptr { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 0.68rem; color: var(--accent); white-space: nowrap; }
+  .ptr::before { content: "▲"; display: block; text-align: center; font-size: 0.6rem; }
+
+  .hint { color: var(--muted); font-size: 0.78rem; margin-top: 12px; font-family: var(--mono); }
+  kbd { font-family: var(--mono); font-size: 0.74rem; background: var(--panel-2); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Add Two Numbers — Live Code Walkthrough</h1>
+    <p>Step through the algorithm line by line. Digits are stored in <em>reverse</em> order.</p>
+    <span class="badge">l1 = 2 → 4 → 3  (342)&nbsp;&nbsp;+&nbsp;&nbsp;l2 = 5 → 6 → 4  (465)&nbsp;&nbsp;=&nbsp;&nbsp;807</span>
+  </header>
+
+  <!-- STICKY CONTROLS -->
+  <div class="controlbar">
+    <div class="controls">
+      <button id="reset">⟲ Reset</button>
+      <button id="prev">← Prev</button>
+      <button id="next" class="primary">Next →</button>
+      <button id="play">▶ Auto-play</button>
+      <span class="progress" id="progress"></span>
+    </div>
+    <div class="bar"><div id="bar"></div></div>
+  </div>
+
+  <!-- NARRATION -->
+  <div class="narration" id="narration"></div>
+
+  <!-- MAIN GRID: code (left)  |  state + linked lists stacked (right) -->
+  <div class="grid">
+    <div class="card">
+      <div class="head">AddTwoNumbersLinkedList.java <span class="tag" id="curline"></span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+
+    <div class="rightcol">
+      <div class="card">
+        <div class="head">Machine State</div>
+        <div class="state-body">
+          <div class="vars">
+            <div class="var" id="v-carry"><div class="k">carry</div><div class="v">–</div></div>
+            <div class="var" id="v-digit1"><div class="k">digit1</div><div class="v">–</div></div>
+            <div class="var" id="v-digit2"><div class="k">digit2</div><div class="v">–</div></div>
+          </div>
+          <div class="equation" id="equation">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="card spotlight">
+        <div class="head">Linked Lists <span class="tag">live iteration</span></div>
+        <div class="viz">
+          <div class="row">
+            <div class="label" style="color:#79c0ff;">l1 &nbsp;(first number)</div>
+            <div class="nodes" id="viz-l1"></div>
+          </div>
+          <div class="row">
+            <div class="label" style="color:#ff9bce;">l2 &nbsp;(second number)</div>
+            <div class="nodes" id="viz-l2"></div>
+          </div>
+          <div class="row">
+            <div class="label" style="color:#7ee787;">result &nbsp;(dummyHead → … &nbsp;·&nbsp; returns dummyHead.next)</div>
+            <div class="nodes" id="viz-res"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Keyboard: <kbd>→</kbd> next · <kbd>←</kbd> prev · <kbd>Space</kbd> play/pause · <kbd>R</kbd> reset</div>
+</div>
+
+<script>
+/* ---------- source code (line-numbered, with light syntax highlight) ---------- */
+const CODE = [
+  `<span class="tok-key">public</span> <span class="tok-type">ListNode</span> <span class="tok-fn">addTwoNumbers</span>(<span class="tok-type">ListNode</span> l1, <span class="tok-type">ListNode</span> l2) {`,
+  ``,
+  `  <span class="tok-com">// dummyHead helps us to create final list</span>`,
+  `  <span class="tok-type">ListNode</span> dummyHead = <span class="tok-key">new</span> <span class="tok-fn">ListNode</span>(<span class="tok-num">0</span>);`,
+  ``,
+  `  <span class="tok-com">// carry is needed to track sums which exceed than 10</span>`,
+  `  <span class="tok-type">int</span> carry = <span class="tok-num">0</span>;`,
+  ``,
+  `  <span class="tok-com">// current tracks the node's position</span>`,
+  `  <span class="tok-type">ListNode</span> current = dummyHead;`,
+  ``,
+  `  <span class="tok-key">while</span> (l1 != <span class="tok-key">null</span> || l2 != <span class="tok-key">null</span> || carry != <span class="tok-num">0</span>){`,
+  `    <span class="tok-type">int</span> digit1 = (l1 == <span class="tok-key">null</span>) ? <span class="tok-num">0</span> : l1.value;`,
+  `    <span class="tok-type">int</span> digit2 = (l2 == <span class="tok-key">null</span>) ? <span class="tok-num">0</span> : l2.value;`,
+  ``,
+  `    <span class="tok-com">// we are adding here</span>`,
+  `    <span class="tok-type">int</span> sum = (digit1 + digit2 + carry);`,
+  ``,
+  `    <span class="tok-com">// determine the carry | 7 / 10 = 0 | 10 / 10 = 1 |</span>`,
+  `    carry = sum / <span class="tok-num">10</span>;`,
+  ``,
+  `    current.next = <span class="tok-key">new</span> <span class="tok-fn">ListNode</span>(sum % <span class="tok-num">10</span>); <span class="tok-com">// build result node</span>`,
+  ``,
+  `    current = current.next; <span class="tok-com">// advance current</span>`,
+  ``,
+  `    l1 = (l1 != <span class="tok-key">null</span>) ? l1.next : <span class="tok-key">null</span>;`,
+  `    l2 = (l2 != <span class="tok-key">null</span>) ? l2.next : <span class="tok-key">null</span>;`,
+  ``,
+  `  }`,
+  `  <span class="tok-key">return</span> dummyHead.next;`,
+  `}`
+];
+
+/* ---------- step definitions ---------- */
+const L1 = [2,4,3], L2 = [5,6,4];
+
+const steps = [
+  { line:4,  carry:null, d1:null, d2:null, eq:"",
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`Create a <b>dummyHead</b> node holding <code>0</code>. It's a throwaway anchor so we never special-case the very first real node. We return <code>dummyHead.next</code> at the end.` },
+
+  { line:7,  carry:0, d1:null, d2:null, eq:"",
+    l1:0, l2:0, res:[], cursor:0, fresh:-1, chg:["carry"],
+    n:`Initialize <b>carry = 0</b>. It holds the overflow whenever a column's sum reaches 10 or more.` },
+
+  { line:10, carry:0, d1:null, d2:null, eq:"",
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`Point <b>current</b> at dummyHead. <code>current</code> is the "pen" — it always sits on the last node we wrote, ready to attach the next one.` },
+
+  /* iteration 1 */
+  { line:12, carry:0, d1:null, d2:null, eq:"l1≠null → enter loop",
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`<b>Check the loop condition.</b> <code>l1</code> points at <code>2</code>, not null → enter. The loop runs while either list has digits left <em>or</em> a carry remains.` },
+
+  { line:13, carry:0, d1:2, d2:null, eq:"", chg:["digit1"],
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`<b>digit1 = 2.</b> l1 isn't null, so we read its value.` },
+
+  { line:14, carry:0, d1:2, d2:5, eq:"", chg:["digit2"],
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`<b>digit2 = 5.</b> l2 isn't null, so we read its value.` },
+
+  { line:17, carry:0, d1:2, d2:5, eq:`sum = 2 + 5 + <span class="car">0</span> = <span class="res">7</span>`,
+    l1:0, l2:0, res:[], cursor:0, fresh:-1,
+    n:`<b>sum = digit1 + digit2 + carry = 2 + 5 + 0 = 7.</b>` },
+
+  { line:20, carry:0, d1:2, d2:5, eq:`carry = 7 / 10 = <span class="car">0</span>`,
+    l1:0, l2:0, res:[], cursor:0, fresh:-1, chg:["carry"],
+    n:`<b>carry = sum / 10 = 0.</b> Integer division: 7 doesn't reach 10, so nothing carries over.` },
+
+  { line:23, carry:0, d1:2, d2:5, eq:`node = 7 % 10 = <span class="res">7</span>`,
+    l1:0, l2:0, res:[7], cursor:0, fresh:0,
+    n:`<b>current.next = new ListNode(7).</b> The digit we keep is <code>sum % 10 = 7</code>. A fresh node is attached after dummyHead.` },
+
+  { line:25, carry:0, d1:2, d2:5, eq:"",
+    l1:0, l2:0, res:[7], cursor:1, fresh:-1,
+    n:`<b>current = current.next.</b> Move the pen forward onto the new <code>7</code> node.` },
+
+  { line:27, carry:0, d1:2, d2:5, eq:"",
+    l1:1, l2:0, res:[7], cursor:1, fresh:-1,
+    n:`<b>l1 = l1.next.</b> Advance l1 from <code>2</code> to <code>4</code>.` },
+
+  { line:28, carry:0, d1:2, d2:5, eq:"",
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1,
+    n:`<b>l2 = l2.next.</b> Advance l2 from <code>5</code> to <code>6</code>. End of iteration 1 — result so far: <code>7</code>.` },
+
+  /* iteration 2 */
+  { line:12, carry:0, d1:2, d2:5, eq:"l1≠null → enter loop",
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1,
+    n:`<b>Loop check again.</b> l1 points at <code>4</code> → enter for iteration 2.` },
+
+  { line:13, carry:0, d1:4, d2:5, eq:"", chg:["digit1"],
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1,
+    n:`<b>digit1 = 4.</b>` },
+
+  { line:14, carry:0, d1:4, d2:6, eq:"", chg:["digit2"],
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1,
+    n:`<b>digit2 = 6.</b>` },
+
+  { line:17, carry:0, d1:4, d2:6, eq:`sum = 4 + 6 + <span class="car">0</span> = <span class="res">10</span>`,
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1,
+    n:`<b>sum = 4 + 6 + 0 = 10.</b> This is the interesting case — it hits 10.` },
+
+  { line:20, carry:1, d1:4, d2:6, eq:`carry = 10 / 10 = <span class="car">1</span>`,
+    l1:1, l2:1, res:[7], cursor:1, fresh:-1, chg:["carry"],
+    n:`<b>carry = 10 / 10 = 1.</b> The overflow is remembered and will be added into the next column.` },
+
+  { line:23, carry:1, d1:4, d2:6, eq:`node = 10 % 10 = <span class="res">0</span>`,
+    l1:1, l2:1, res:[7,0], cursor:1, fresh:1,
+    n:`<b>current.next = new ListNode(0).</b> We store only <code>10 % 10 = 0</code>; the tens digit lives in <code>carry</code>.` },
+
+  { line:25, carry:1, d1:4, d2:6, eq:"",
+    l1:1, l2:1, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>current = current.next.</b> Pen moves onto the new <code>0</code> node.` },
+
+  { line:27, carry:1, d1:4, d2:6, eq:"",
+    l1:2, l2:1, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>l1 = l1.next.</b> Advance l1 from <code>4</code> to <code>3</code>.` },
+
+  { line:28, carry:1, d1:4, d2:6, eq:"",
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>l2 = l2.next.</b> Advance l2 from <code>6</code> to <code>4</code>. Result so far: <code>7 → 0</code> (carry still 1).` },
+
+  /* iteration 3 */
+  { line:12, carry:1, d1:4, d2:6, eq:"l1≠null → enter loop",
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>Loop check.</b> l1 points at <code>3</code> → enter for iteration 3.` },
+
+  { line:13, carry:1, d1:3, d2:6, eq:"", chg:["digit1"],
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>digit1 = 3.</b>` },
+
+  { line:14, carry:1, d1:3, d2:4, eq:"", chg:["digit2"],
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>digit2 = 4.</b>` },
+
+  { line:17, carry:1, d1:3, d2:4, eq:`sum = 3 + 4 + <span class="car">1</span> = <span class="res">8</span>`,
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1,
+    n:`<b>sum = 3 + 4 + 1 = 8.</b> Notice the leftover <code>carry = 1</code> from iteration 2 joins in here.` },
+
+  { line:20, carry:0, d1:3, d2:4, eq:`carry = 8 / 10 = <span class="car">0</span>`,
+    l1:2, l2:2, res:[7,0], cursor:2, fresh:-1, chg:["carry"],
+    n:`<b>carry = 8 / 10 = 0.</b> Back to zero.` },
+
+  { line:23, carry:0, d1:3, d2:4, eq:`node = 8 % 10 = <span class="res">8</span>`,
+    l1:2, l2:2, res:[7,0,8], cursor:2, fresh:2,
+    n:`<b>current.next = new ListNode(8).</b> Attach the <code>8</code> node.` },
+
+  { line:25, carry:0, d1:3, d2:4, eq:"",
+    l1:2, l2:2, res:[7,0,8], cursor:3, fresh:-1,
+    n:`<b>current = current.next.</b> Pen moves onto <code>8</code>.` },
+
+  { line:27, carry:0, d1:3, d2:4, eq:"",
+    l1:-1, l2:2, res:[7,0,8], cursor:3, fresh:-1,
+    n:`<b>l1 = l1.next.</b> l1 walks off the end → <code>null</code>.` },
+
+  { line:28, carry:0, d1:3, d2:4, eq:"",
+    l1:-1, l2:-1, res:[7,0,8], cursor:3, fresh:-1,
+    n:`<b>l2 = l2.next.</b> l2 also becomes <code>null</code>. Result so far: <code>7 → 0 → 8</code>.` },
+
+  /* exit */
+  { line:12, carry:0, d1:3, d2:4, eq:"l1=null, l2=null, carry=0 → exit",
+    l1:-1, l2:-1, res:[7,0,8], cursor:3, fresh:-1,
+    n:`<b>Loop check.</b> Both lists are null <em>and</em> carry is 0 → all three conditions false. We exit the loop.` },
+
+  { line:31, carry:0, d1:3, d2:4, eq:`return  7 → 0 → 8  (= 807)`,
+    l1:-1, l2:-1, res:[7,0,8], cursor:-1, fresh:-1, done:true,
+    n:`<b>return dummyHead.next.</b> We skip the throwaway anchor and hand back <code>7 → 0 → 8</code> — which reads as <b>807 = 342 + 465</b>. ✅` },
+];
+
+/* ---------- render code panel once ---------- */
+const codeEl = document.getElementById('code');
+CODE.forEach((html, i) => {
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.dataset.line = i + 1;
+  div.innerHTML = `<span class="ln">${i + 1}</span><span>${html}</span>`;
+  codeEl.appendChild(div);
+});
+
+/* ---------- refs ---------- */
+const els = {
+  carry: document.getElementById('v-carry'),
+  d1: document.getElementById('v-digit1'),
+  d2: document.getElementById('v-digit2'),
+  eq: document.getElementById('equation'),
+  l1: document.getElementById('viz-l1'),
+  l2: document.getElementById('viz-l2'),
+  res: document.getElementById('viz-res'),
+  narr: document.getElementById('narration'),
+  prog: document.getElementById('progress'),
+  bar: document.getElementById('bar'),
+  curline: document.getElementById('curline'),
+};
+let idx = 0, timer = null;
+
+function setVar(el, val, changed) {
+  const v = el.querySelector('.v');
+  v.textContent = (val === null || val === undefined) ? '–' : val;
+  el.classList.toggle('changed', !!changed);
+  el.classList.toggle('null', val === null || val === undefined);
+}
+
+function listRow(container, values, kind) {
+  // values: [{val, cursor, fresh, consumed, ptr}]
+  container.innerHTML = '';
+  if (values.length === 0) {
+    const cap = document.createElement('span');
+    cap.className = 'nullcap'; cap.textContent = 'null';
+    container.appendChild(cap); return;
+  }
+  values.forEach((item) => {
+    const grp = document.createElement('div');
+    grp.className = 'node-group';
+    const node = document.createElement('div');
+    node.className = 'node ' + kind;
+    node.textContent = item.val;
+    if (item.cursor) node.classList.add('cursor');
+    if (item.fresh) node.classList.add('fresh');
+    if (item.consumed) node.classList.add('consumed');
+    grp.appendChild(node);
+    if (item.ptr) {
+      const p = document.createElement('div');
+      p.className = 'ptr'; p.textContent = item.ptr;
+      grp.appendChild(p);
+    }
+    container.appendChild(grp);
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow'; arrow.textContent = '→';
+    container.appendChild(arrow);
+  });
+  const cap = document.createElement('span');
+  cap.className = 'nullcap'; cap.textContent = 'null';
+  container.appendChild(cap);
+}
+
+function render() {
+  const s = steps[idx];
+
+  // code line highlight + auto-scroll into view
+  document.querySelectorAll('.line').forEach(l => {
+    const on = Number(l.dataset.line) === s.line;
+    l.classList.toggle('active', on);
+    if (on) l.scrollIntoView({ block: 'nearest' });
+  });
+  els.curline.textContent = 'line ' + s.line;
+
+  // variables
+  const chg = s.chg || [];
+  setVar(els.carry, s.carry, chg.includes('carry'));
+  setVar(els.d1, s.d1, chg.includes('digit1'));
+  setVar(els.d2, s.d2, chg.includes('digit2'));
+  els.eq.innerHTML = s.eq && s.eq.length ? s.eq : '&nbsp;';
+
+  // l1 / l2 rows — dim nodes already consumed (before the pointer)
+  els.l1 && listRow(els.l1, L1.map((v, i) => ({
+    val: v, cursor: i === s.l1, consumed: s.l1 >= 0 ? i < s.l1 : true,
+    ptr: i === s.l1 ? 'l1' : null
+  })), 'l1');
+  els.l2 && listRow(els.l2, L2.map((v, i) => ({
+    val: v, cursor: i === s.l2, consumed: s.l2 >= 0 ? i < s.l2 : true,
+    ptr: i === s.l2 ? 'l2' : null
+  })), 'l2');
+
+  // result row — dummy(0) + built digits; cursor index 0 = dummy
+  const resItems = [{ val: 0, kind: 'dummy' }, ...s.res.map(d => ({ val: d, kind: 'res' }))]
+    .map((item, i) => ({
+      ...item,
+      cursor: i === s.cursor,
+      fresh: s.fresh >= 0 && i === s.fresh + 1,
+      ptr: i === s.cursor ? 'current' : (i === 0 ? 'dummyHead' : null)
+    }));
+  els.res.innerHTML = '';
+  resItems.forEach((item) => {
+    const grp = document.createElement('div');
+    grp.className = 'node-group';
+    const node = document.createElement('div');
+    node.className = 'node ' + item.kind;
+    node.textContent = item.val;
+    if (item.cursor) node.classList.add('cursor');
+    if (item.fresh) node.classList.add('fresh');
+    grp.appendChild(node);
+    if (item.ptr) {
+      const p = document.createElement('div');
+      p.className = 'ptr'; p.textContent = item.ptr;
+      grp.appendChild(p);
+    }
+    els.res.appendChild(grp);
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow'; arrow.textContent = '→';
+    els.res.appendChild(arrow);
+  });
+  const cap = document.createElement('span');
+  cap.className = 'nullcap';
+  cap.textContent = s.done ? 'null   ⟵ returned: dummyHead.next' : 'null';
+  els.res.appendChild(cap);
+
+  // narration + progress
+  els.narr.innerHTML = s.n;
+  els.prog.textContent = `Step ${idx + 1} / ${steps.length}`;
+  els.bar.style.width = (idx / (steps.length - 1) * 100) + '%';
+  document.getElementById('prev').disabled = idx === 0;
+  document.getElementById('next').disabled = idx === steps.length - 1;
+}
+
+/* ---------- controls ---------- */
+function go(n) { idx = Math.max(0, Math.min(steps.length - 1, n)); render(); }
+function stopPlay() { if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '▶ Auto-play'; } }
+function togglePlay() {
+  if (timer) { stopPlay(); return; }
+  if (idx === steps.length - 1) idx = 0;
+  document.getElementById('play').textContent = '⏸ Pause';
+  timer = setInterval(() => { if (idx >= steps.length - 1) { stopPlay(); return; } go(idx + 1); }, 1300);
+}
+document.getElementById('next').onclick = () => { stopPlay(); go(idx + 1); };
+document.getElementById('prev').onclick = () => { stopPlay(); go(idx - 1); };
+document.getElementById('reset').onclick = () => { stopPlay(); go(0); };
+document.getElementById('play').onclick = togglePlay;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { stopPlay(); go(idx + 1); }
+  else if (e.key === 'ArrowLeft') { stopPlay(); go(idx - 1); }
+  else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  else if (e.key.toLowerCase() === 'r') { stopPlay(); go(0); }
+});
+
+render();
+</script>
+</body>
+</html>
