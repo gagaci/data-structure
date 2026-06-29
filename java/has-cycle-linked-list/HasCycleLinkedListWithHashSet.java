@@ -3,7 +3,7 @@ package org.example;
 import java.util.HashSet;
 import java.util.Set;
 
-public class HasCycleLinkedList {
+public class HasCycleLinkedListWithHashSet {
 
   public boolean hasCycle(ListNode head) {
     Set<ListNode> set = new HashSet<>();
