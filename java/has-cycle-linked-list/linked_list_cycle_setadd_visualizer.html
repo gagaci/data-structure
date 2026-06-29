@@ -1,0 +1,172 @@
+<div style="padding: 1rem 0;">
+<h2 class="sr-only">Step-by-step visualization of cycle detection in a linked list using set.add as the membership check.</h2>
+
+<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem;">
+  <button id="btnExample" style="font-size:13px;">Toggle cycle <i class="ti ti-refresh" aria-hidden="true"></i></button>
+  <button id="btnStep" style="font-size:13px;">Step <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  <button id="btnPlay" style="font-size:13px;">Play <i class="ti ti-player-play" aria-hidden="true"></i></button>
+  <button id="btnReset" style="font-size:13px;">Reset <i class="ti ti-refresh" aria-hidden="true"></i></button>
+  <span id="mode" style="font-size:13px; color:var(--text-secondary); margin-left:4px;"></span>
+</div>
+
+<div style="position:relative; height:200px; margin-bottom:1.25rem;">
+  <svg id="canvas" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
+    <defs>
+      <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--text-secondary)"/>
+      </marker>
+    </defs>
+    <g id="edges"></g>
+    <g id="nodes"></g>
+  </svg>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1rem;">
+  <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.75rem 1rem;">
+    <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Hash set <span style="color:var(--text-muted);">(visited nodes)</span></div>
+    <div id="setView" style="display:flex; gap:6px; flex-wrap:wrap; min-height:28px;"></div>
+  </div>
+  <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.75rem 1rem;">
+    <div style="font-size:13px; color:var(--text-secondary); margin-bottom:6px;">Status</div>
+    <div id="status" style="font-size:15px; font-weight:500;">Ready</div>
+  </div>
+</div>
+
+<div style="background:var(--surface-2); border:0.5px solid var(--border); border-radius:12px; padding:0.75rem 1rem; font-family:var(--font-mono); font-size:13px; line-height:1.9;">
+  <div data-ln="0">public boolean hasCycle(ListNode head) {</div>
+  <div data-ln="1">&nbsp;&nbsp;Set&lt;ListNode&gt; set = new HashSet&lt;&gt;();</div>
+  <div data-ln="2">&nbsp;&nbsp;ListNode temp = head;</div>
+  <div data-ln="3">&nbsp;&nbsp;while (temp != null) {</div>
+  <div data-ln="4">&nbsp;&nbsp;&nbsp;&nbsp;if (!set.add(temp)) return true;</div>
+  <div data-ln="5">&nbsp;&nbsp;&nbsp;&nbsp;temp = temp.next;</div>
+  <div data-ln="6">&nbsp;&nbsp;}</div>
+  <div data-ln="7">&nbsp;&nbsp;return false;</div>
+  <div data-ln="8">}</div>
+</div>
+
+<script>
+(function(){
+  var NODE_W=58, NODE_H=44, GAP=22, Y=70, X0=20;
+  var hasCycle=true, cycleTo=1;
+  var nodes=[], steps=[], si=0, playing=false, timer=null;
+
+  function buildList(){
+    var vals=[3,7,2,9];
+    nodes=vals.map(function(v,i){return {id:i, val:v, x:X0+i*(NODE_W+GAP), y:Y};});
+    nodes.forEach(function(n,i){ n.next = (i<nodes.length-1)? i+1 : (hasCycle? cycleTo : null); });
+  }
+
+  function buildSteps(){
+    steps=[]; var set=[]; var temp=0;
+    steps.push({ln:2, temp:0, set:[], status:'temp = head', cur:0});
+    var guard=0;
+    while(temp!==null && guard<20){
+      guard++;
+      steps.push({ln:3, temp:temp, set:set.slice(), status:'temp != null? yes', cur:temp});
+      if(set.indexOf(temp)===-1){
+        set=set.concat([temp]);
+        steps.push({ln:4, temp:temp, set:set.slice(), status:'set.add returns true — node '+nodes[temp].val+' added', cur:temp});
+      } else {
+        steps.push({ln:4, temp:temp, set:set.slice(), status:'set.add returns false — cycle found!', cur:temp, found:true});
+        return;
+      }
+      var nx=nodes[temp].next;
+      steps.push({ln:5, temp:nx, set:set.slice(), status:nx===null?'temp = null':'temp = next node', cur:nx});
+      temp=nx;
+    }
+    steps.push({ln:3, temp:null, set:set.slice(), status:'temp != null? no', cur:null});
+    steps.push({ln:7, temp:null, set:set.slice(), status:'no cycle — return false', cur:null, done:true});
+  }
+
+  function render(){
+    var st=steps[si];
+    var edges=document.getElementById('edges');
+    var ng=document.getElementById('nodes');
+    edges.innerHTML=''; ng.innerHTML='';
+
+    nodes.forEach(function(n){
+      if(n.next===null) return;
+      var t=nodes[n.next];
+      var sx=n.x+NODE_W, sy=n.y+NODE_H/2;
+      var ex=t.x, ey=t.y+NODE_H/2;
+      var d;
+      if(n.next<=n.id){
+        d='M'+sx+','+sy+' C '+(sx+30)+','+(sy+70)+' '+(ex-30)+','+(ey+70)+' '+ex+','+(ey+8);
+      } else {
+        d='M'+sx+','+sy+' L '+(ex-6)+','+ey;
+      }
+      var p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d',d); p.setAttribute('fill','none');
+      p.setAttribute('stroke','var(--text-secondary)'); p.setAttribute('stroke-width','1.5');
+      p.setAttribute('marker-end','url(#arw)');
+      edges.appendChild(p);
+    });
+
+    nodes.forEach(function(n){
+      var inSet=st.set.indexOf(n.id)!==-1;
+      var isCur=st.cur===n.id;
+      var fill='var(--surface-2)', stroke='var(--border-strong)', txt='var(--text-primary)';
+      if(inSet){ fill='#CECBF6'; stroke='#534AB7'; txt='#26215C'; }
+      if(isCur){ fill='#9FE1CB'; stroke='#0F6E56'; txt='#04342C'; }
+      if(st.found && isCur){ fill='#F7C1C1'; stroke='#A32D2D'; txt='#501313'; }
+
+      var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      var r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x',n.x); r.setAttribute('y',n.y);
+      r.setAttribute('width',NODE_W); r.setAttribute('height',NODE_H);
+      r.setAttribute('rx','8'); r.setAttribute('fill',fill);
+      r.setAttribute('stroke',stroke); r.setAttribute('stroke-width', isCur?'2':'1');
+      g.appendChild(r);
+      var tx=document.createElementNS('http://www.w3.org/2000/svg','text');
+      tx.setAttribute('x',n.x+NODE_W/2); tx.setAttribute('y',n.y+NODE_H/2+5);
+      tx.setAttribute('text-anchor','middle'); tx.setAttribute('font-size','16');
+      tx.setAttribute('font-weight','500'); tx.setAttribute('fill',txt);
+      tx.textContent=n.val;
+      g.appendChild(tx);
+      ng.appendChild(g);
+
+      if(isCur){
+        var lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lbl.setAttribute('x',n.x+NODE_W/2); lbl.setAttribute('y',n.y-10);
+        lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','12');
+        lbl.setAttribute('fill','var(--text-secondary)'); lbl.textContent='temp';
+        ng.appendChild(lbl);
+      }
+    });
+
+    var sv=document.getElementById('setView');
+    sv.innerHTML='';
+    if(st.set.length===0){ sv.innerHTML='<span style="font-size:13px; color:var(--text-muted);">empty</span>'; }
+    st.set.forEach(function(id){
+      var pill=document.createElement('span');
+      pill.textContent=nodes[id].val;
+      pill.style.cssText='background:#CECBF6; color:#26215C; font-size:13px; font-weight:500; padding:3px 10px; border-radius:12px;';
+      sv.appendChild(pill);
+    });
+
+    document.getElementById('status').textContent=st.status;
+    document.getElementById('status').style.color = st.found? '#A32D2D' : (st.done? 'var(--text-secondary)' : 'var(--text-primary)');
+
+    document.querySelectorAll('[data-ln]').forEach(function(el){
+      var on = parseInt(el.getAttribute('data-ln'))===st.ln;
+      el.style.background = on? 'var(--bg-accent)' : 'transparent';
+      el.style.color = on? 'var(--text-accent)' : 'var(--text-primary)';
+      el.style.borderRadius='4px';
+    });
+  }
+
+  function step(){ if(si<steps.length-1){ si++; render(); } else { stop(); } }
+  function play(){ if(playing){ stop(); return; } playing=true; document.getElementById('btnPlay').innerHTML='Pause <i class="ti ti-player-pause"></i>'; timer=setInterval(function(){ if(si>=steps.length-1){ stop(); } else step(); }, 900); }
+  function stop(){ playing=false; clearInterval(timer); document.getElementById('btnPlay').innerHTML='Play <i class="ti ti-player-play"></i>'; }
+  function reset(){ stop(); si=0; render(); }
+  function rebuild(){ stop(); buildList(); buildSteps(); si=0; document.getElementById('mode').textContent = hasCycle? 'list has a cycle (tail → node 7)' : 'list has no cycle'; render(); }
+
+  document.getElementById('btnStep').onclick=step;
+  document.getElementById('btnPlay').onclick=play;
+  document.getElementById('btnReset').onclick=reset;
+  document.getElementById('btnExample').onclick=function(){ hasCycle=!hasCycle; rebuild(); };
+
+  rebuild();
+})();
+</script>
+</div>
