@@ -43,9 +43,13 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     │   ├── MergeTwoSortedLinkedList.java
     │   ├── ListNode.java
     │   └── explanation.png
-    └── palindrome-linked-list/        check a list reads the same both ways
-        ├── PalindromeLinkedList.java
-        └── ListNode.java
+    ├── palindrome-linked-list/        check a list reads the same both ways
+    │   ├── PalindromeLinkedList.java
+    │   └── ListNode.java
+    └── intersection-of-two-linked-lists/  two-pointer intersection finder
+        ├── Solution.java
+        ├── ListNode.java
+        └── intersection_of_two_linked_lists_two_pointer_visualizer.html
 ```
 
 ---
@@ -87,6 +91,7 @@ javac *.java && java Main
 | 9 | Find the middle of a linked list | Java | [`java/find-middle-of-linked-list`](java/find-middle-of-linked-list) |
 | 10 | Merge two sorted linked lists | Java | [`java/merge-two-sorted-linked-list`](java/merge-two-sorted-linked-list) |
 | 11 | Palindrome linked list | Java | [`java/palindrome-linked-list`](java/palindrome-linked-list) |
+| 12 | Intersection of two linked lists — two pointers | Java | [`java/intersection-of-two-linked-lists`](java/intersection-of-two-linked-lists) |
 
 ---
 
