@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeetCode 160 — Intersection of Two Linked Lists | Two-Pointer Walkthrough</title>
+<style>
+  :root {
+    --bg: #FBFAF7;
+    --surface: #FFFFFF;
+    --surface-2: #F5F3EC;
+    --surface-3: #ECEAE2;
+    --text: #1F1E1B;
+    --text-2: #5F5E5A;
+    --text-3: #888780;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.22);
+    --info-bg: #E6F1FB;
+    --info-text: #0C447C;
+    --info-border: #185FA5;
+    --warn-bg: #FAEEDA;
+    --warn-text: #633806;
+    --warn-border: #BA7517;
+    --success-bg: #E1F5EE;
+    --success-text: #0F6E56;
+    --error-bg: #FCEBEB;
+    --error-text: #A32D2D;
+    --line-highlight: #FFF4CC;
+    --code: 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --ptrA: #185FA5;
+    --ptrA-soft: #AFCDEC;
+    --ptrB: #B0561F;
+    --ptrB-soft: #F0C9AC;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161512;
+      --surface: #1F1E1A;
+      --surface-2: #26241F;
+      --surface-3: #2F2D27;
+      --text: #EAE7DF;
+      --text-2: #B4B2A9;
+      --text-3: #888780;
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.22);
+      --info-bg: #0C447C;
+      --info-text: #B5D4F4;
+      --warn-bg: #412402;
+      --warn-text: #FAC775;
+      --warn-border: #BA7517;
+      --success-bg: #04342C;
+      --success-text: #5DCAA5;
+      --error-bg: #501313;
+      --error-text: #F09595;
+      --line-highlight: #4A3A0E;
+      --ptrA: #6FA8E0;
+      --ptrA-soft: #2C4A6B;
+      --ptrB: #E0975F;
+      --ptrB-soft: #5A3416;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    font-size: 15px;
+  }
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 26px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 19px; font-weight: 600; margin: 32px 0 12px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-2); font-size: 15px; margin: 0 0 24px; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px; }
+  p { margin: 0 0 12px; }
+  code { font-family: var(--code); font-size: 0.9em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+  .prose { max-width: 780px; color: var(--text); }
+  .prose ul { margin: 0 0 12px; padding-left: 22px; }
+  .prose li { margin-bottom: 6px; }
+  .callout {
+    background: var(--info-bg); color: var(--info-text);
+    border-left: 3px solid var(--info-border);
+    padding: 12px 16px; border-radius: 6px; margin: 12px 0;
+    font-size: 14.5px; line-height: 1.6;
+  }
+
+  .step-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .step-num {
+    font-size: 12px; color: var(--text-2); letter-spacing: 0.5px;
+    text-transform: uppercase; font-weight: 600; padding: 5px 10px;
+    background: var(--surface-2); border-radius: 6px; font-family: var(--code);
+  }
+  .progress { flex: 1; height: 4px; background: var(--surface-3); border-radius: 2px; overflow: hidden; min-width: 100px; }
+  .progress-bar { height: 100%; background: var(--info-border); border-radius: 2px; transition: width 0.2s ease-out; }
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 13px; padding: 7px 13px;
+    background: var(--surface); color: var(--text);
+    border: 0.5px solid var(--border-strong); border-radius: 7px;
+    cursor: pointer; transition: background 0.12s, transform 0.05s; font-weight: 500;
+  }
+  button:hover:not(:disabled) { background: var(--surface-2); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.primary { background: var(--info-border); color: white; border-color: var(--info-border); }
+  button.primary:hover:not(:disabled) { opacity: 0.88; }
+  button.toggle { border-color: var(--border-strong); }
+  button.toggle.on { background: var(--surface-3); }
+
+  .step-desc {
+    font-size: 14.5px; line-height: 1.6; padding: 13px 16px;
+    background: var(--info-bg); color: var(--info-text);
+    border-left: 3px solid var(--info-border);
+    border-radius: 6px; margin-bottom: 18px;
+  }
+  .step-desc.meet { background: var(--success-bg); color: var(--success-text); border-left-color: var(--success-text); }
+  .step-desc.cross { background: var(--warn-bg); color: var(--warn-text); border-left-color: var(--warn-border); }
+
+  .debugger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 820px) { .debugger-grid { grid-template-columns: 1fr; } }
+
+  .panel-h {
+    font-size: 11px; color: var(--text-3); text-transform: uppercase;
+    letter-spacing: 0.8px; margin: 0 0 8px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-h .badge {
+    font-size: 10px; background: var(--surface-3); color: var(--text-2);
+    padding: 2px 6px; border-radius: 3px; text-transform: none;
+    letter-spacing: 0; font-weight: 600;
+  }
+  .panel-h .lang-tag {
+    font-size: 10.5px; background: var(--info-bg); color: var(--info-text);
+    padding: 2px 7px; border-radius: 3px; text-transform: uppercase;
+    letter-spacing: 0.5px; font-weight: 700; margin-left: auto;
+  }
+  .sub-panel { margin-bottom: 18px; }
+
+  .code-block {
+    background: var(--surface-2); border-radius: 8px; padding: 10px 0;
+    font-family: var(--code); font-size: 13px; line-height: 1.7;
+    overflow-x: auto; border: 0.5px solid var(--border);
+  }
+  .code-line {
+    display: flex; align-items: center; padding: 1px 16px 1px 6px;
+    position: relative; transition: background 0.15s; white-space: nowrap;
+  }
+  .code-line.active { background: var(--line-highlight); }
+  .code-line .marker { width: 14px; color: var(--warn-border); font-weight: 700; visibility: hidden; flex-shrink: 0; }
+  .code-line.active .marker { visibility: visible; }
+  .code-line .lnum {
+    color: var(--text-3); margin-right: 14px; text-align: right;
+    width: 18px; font-size: 12px; flex-shrink: 0; user-select: none;
+  }
+  .code-line .code-text { color: var(--text); }
+  .code-line .branch-tag {
+    margin-left: 10px; font-size: 11px; padding: 1px 7px;
+    border-radius: 10px; font-weight: 600; font-family: var(--sans);
+  }
+  .branch-tag.true { background: var(--success-bg); color: var(--success-text); }
+  .branch-tag.false { background: var(--error-bg); color: var(--error-text); }
+  .kw { color: #185FA5; font-weight: 500; }
+  .fn { color: #534AB7; }
+  .type { color: #993556; }
+  .cm { color: var(--text-3); font-style: italic; }
+  @media (prefers-color-scheme: dark) {
+    .kw { color: #85B7EB; }
+    .fn { color: #AFA9EC; }
+    .type { color: #ED93B1; }
+  }
+
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .state-card {
+    background: var(--surface-2); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .state-card.a { border-left: 3px solid var(--ptrA); }
+  .state-card.b { border-left: 3px solid var(--ptrB); }
+  .state-card .sc-name {
+    font-family: var(--code); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  }
+  .state-card.a .sc-name { color: var(--ptrA); }
+  .state-card.b .sc-name { color: var(--ptrB); }
+  .state-card .sc-val { font-size: 20px; font-weight: 600; font-family: var(--code); }
+  .state-card .sc-sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .chip {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 10px; letter-spacing: 0.3px;
+  }
+  .chip.a { background: var(--ptrA-soft); color: var(--ptrA); }
+  .chip.b { background: var(--ptrB-soft); color: var(--ptrB); }
+
+  .metrics { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .metric {
+    background: var(--surface-2); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 120px;
+  }
+  .metric .m-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-3); font-weight: 700; }
+  .metric .m-val { font-size: 18px; font-weight: 600; font-family: var(--code); margin-top: 2px; }
+
+  svg.viz { display: block; width: 100%; }
+  .viz-panel { background: var(--surface-2); border-radius: 8px; padding: 14px 10px 10px; border: 0.5px solid var(--border); }
+
+  .legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--text-2);
+    margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--border);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 3px; }
+
+  .footer {
+    margin-top: 28px; padding-top: 18px;
+    border-top: 0.5px solid var(--border);
+    font-size: 12.5px; color: var(--text-3); text-align: center;
+  }
+  .kbd {
+    background: var(--surface-2); border: 0.5px solid var(--border-strong);
+    border-radius: 4px; padding: 1px 5px;
+    font-family: var(--code); font-size: 11px; color: var(--text-2);
+  }
+  table.cmp { border-collapse: collapse; width: 100%; max-width: 640px; font-size: 14px; margin: 8px 0 16px; }
+  table.cmp th, table.cmp td { border: 0.5px solid var(--border); padding: 8px 12px; text-align: left; }
+  table.cmp th { background: var(--surface-2); font-weight: 600; }
+  table.cmp td code { background: transparent; padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>Intersection of Two Linked Lists — Two-Pointer Walkthrough</h1>
+  <p class="subtitle">LeetCode 160. Step through every line of the elegant two-pointer Java solution and watch the two travellers line up.</p>
+
+  <div class="card">
+    <div class="step-bar">
+      <div class="step-num" id="step-num">Step 0 / 0</div>
+      <div class="progress"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+      <div class="btn-group">
+        <button id="btn-example" class="toggle">Example: Intersecting ⇄</button>
+        <button id="btn-prev">← Prev</button>
+        <button id="btn-play" class="primary">▶ Play</button>
+        <button id="btn-next" class="primary">Next →</button>
+        <button id="btn-reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="step-desc" id="step-desc">Initial state. Both pointers sit on the heads of their lists. Click <strong>Next</strong> (or <strong>Play</strong>) to begin.</div>
+
+    <div class="sub-panel">
+      <div class="panel-h">Linked lists — live pointer positions</div>
+      <div class="viz-panel">
+        <svg class="viz" id="lists-svg" viewBox="0 0 700 210" role="img" aria-label="Two linked lists with pointers"></svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ptrA)"></i>tempA (starts on list A)</span>
+        <span><i style="background:var(--ptrB)"></i>tempB (starts on list B)</span>
+        <span><i style="background:#9FE1CB;border:1.5px solid #0F6E56"></i>both pointers meet</span>
+        <span><i style="background:#D3D1C7"></i>shared tail / null</span>
+      </div>
+    </div>
+
+    <div class="debugger-grid">
+      <div>
+        <div class="panel-h">Source code <span class="badge" id="line-badge">paused</span><span class="lang-tag">Java</span></div>
+        <div class="code-block" id="code-block"></div>
+      </div>
+      <div>
+        <div class="panel-h">Pointer state</div>
+        <div class="state-grid">
+          <div class="state-card a">
+            <div class="sc-name"><span class="chip a">tempA</span></div>
+            <div class="sc-val" id="a-val">4</div>
+            <div class="sc-sub" id="a-sub">on list A</div>
+          </div>
+          <div class="state-card b">
+            <div class="sc-name"><span class="chip b">tempB</span></div>
+            <div class="sc-val" id="b-val">5</div>
+            <div class="sc-sub" id="b-sub">on list B</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="m-label">Iteration</div>
+            <div class="m-val" id="m-iter">0</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">A steps taken</div>
+            <div class="m-val" id="m-astep">0</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">B steps taken</div>
+            <div class="m-val" id="m-bstep">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Why does this work?</h2>
+  <div class="prose">
+    <p>
+      The problem: given the heads of two singly linked lists that may merge and share a
+      common tail, return the first shared node — or <code>null</code> if they never touch.
+      The lists can be different lengths, which is exactly what makes a naive "walk them in
+      lock-step" approach fail: the pointers are misaligned by the length difference.
+    </p>
+    <p>The two-pointer trick fixes the misalignment for free:</p>
+    <ul>
+      <li><code>tempA</code> walks all of list A, then jumps to the head of list B.</li>
+      <li><code>tempB</code> walks all of list B, then jumps to the head of list A.</li>
+    </ul>
+    <p>
+      Let <code>a</code> be the length of A's unique part, <code>b</code> be B's unique part,
+      and <code>c</code> the shared tail. After the crossover, <code>tempA</code> has walked
+      <code>a + c + b</code> steps and <code>tempB</code> has walked <code>b + c + a</code>
+      steps to reach the same point. Both sums are equal, so the two pointers become perfectly
+      aligned and land on the first shared node <strong>at the same moment</strong>.
+    </p>
+    <div class="callout">
+      <strong>The null case falls out automatically.</strong> If the lists never intersect,
+      then <code>c = 0</code>. Both pointers still walk <code>a + b</code> steps and then hit
+      <code>null</code> on the same iteration — so <code>tempA == tempB == null</code>, the
+      <code>while</code> loop ends, and the method returns <code>null</code>. No special-casing
+      needed. The reference comparison <code>tempA != tempB</code> is doing the real work here,
+      not a value comparison.
+    </div>
+    <table class="cmp">
+      <tr><th>Property</th><th>Value</th></tr>
+      <tr><td>Time complexity</td><td><code>O(m + n)</code> — each pointer crosses both lists once</td></tr>
+      <tr><td>Space complexity</td><td><code>O(1)</code> — two pointers, no extra structures</td></tr>
+      <tr><td>Terminates?</td><td>Yes — pointers align within at most <code>m + n + 1</code> iterations</td></tr>
+    </table>
+    <p style="color:var(--text-2); font-size:14px;">
+      The example above uses <code>A = 4 → 1 → 8 → 4 → 5</code> and
+      <code>B = 5 → 6 → 1 → 8 → 4 → 5</code>, which share the tail starting at node <code>8</code>.
+      Toggle the <strong>Example</strong> button to watch the non-intersecting case where both
+      pointers gracefully meet at <code>null</code>.
+    </p>
+  </div>
+
+  <div class="footer">
+    Keyboard: <span class="kbd">←</span> <span class="kbd">→</span> to step, <span class="kbd">Space</span> to play/pause, <span class="kbd">R</span> to reset.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Java source ----------------------------------------------------------
+  const CODE_LINES = [
+    { n: 1,  html: '<span class="kw">public</span> <span class="type">ListNode</span> <span class="fn">getIntersectionNode</span>(<span class="type">ListNode</span> headA, <span class="type">ListNode</span> headB) {' },
+    { n: 2,  html: '    <span class="type">ListNode</span> tempA = headA;' },
+    { n: 3,  html: '    <span class="type">ListNode</span> tempB = headB;' },
+    { n: 4,  html: '' },
+    { n: 5,  html: '    <span class="kw">while</span> (tempA != tempB) {' },
+    { n: 6,  html: '        tempA = (tempA == <span class="kw">null</span>) ? headB : tempA.next;' },
+    { n: 7,  html: '        tempB = (tempB == <span class="kw">null</span>) ? headA : tempB.next;' },
+    { n: 8,  html: '    }' },
+    { n: 9,  html: '    <span class="kw">return</span> tempA;' },
+    { n: 10, html: '}' }
+  ];
+
+  // ---- Examples -------------------------------------------------------------
+  // Each node: id -> { val, x, y }.  next: id -> id or null.  A shared "null"
+  // slot on the far right is where a pointer parks when it reaches the end.
+  const EXAMPLES = {
+    intersect: {
+      label: 'Intersecting',
+      headA: 'a0', headB: 'b0',
+      nodes: {
+        a0: { val: 4, x: 118, y: 22 }, a1: { val: 1, x: 210, y: 22 },
+        b0: { val: 5, x: 26,  y: 150 }, b1: { val: 6, x: 118, y: 150 }, b2: { val: 1, x: 210, y: 150 },
+        c0: { val: 8, x: 330, y: 86 }, c1: { val: 4, x: 440, y: 86 }, c2: { val: 5, x: 550, y: 86 }
+      },
+      next: { a0: 'a1', a1: 'c0', c0: 'c1', c1: 'c2', c2: null, b0: 'b1', b1: 'b2', b2: 'c0' },
+      edges: [['a0','a1'],['a1','c0'],['b0','b1'],['b1','b2'],['b2','c0'],['c0','c1'],['c1','c2'],['c2','null']],
+      nullPos: { x: 650, y: 86 }
+    },
+    none: {
+      label: 'No intersection',
+      headA: 'a0', headB: 'b0',
+      nodes: {
+        a0: { val: 2, x: 120, y: 22 }, a1: { val: 6, x: 240, y: 22 }, a2: { val: 4, x: 360, y: 22 },
+        b0: { val: 1, x: 120, y: 150 }, b1: { val: 5, x: 240, y: 150 }
+      },
+      next: { a0: 'a1', a1: 'a2', a2: null, b0: 'b1', b1: null },
+      edges: [['a0','a1'],['a1','a2'],['a2','null'],['b0','b1'],['b1','null']],
+      nullPos: { x: 470, y: 86 }
+    }
+  };
+
+  const NODE_W = 52, NODE_H = 38;
+
+  function valOf(ex, id) { return id === null ? 'null' : ex.nodes[id].val; }
+  function centerOf(ex, id) {
+    if (id === null) return { cx: ex.nullPos.x, cy: ex.nullPos.y + NODE_H / 2 };
+    const n = ex.nodes[id];
+    return { cx: n.x + NODE_W / 2, cy: n.y + NODE_H / 2 };
+  }
+  function listOfId(ex, id) {
+    // For labelling: which original list does this node belong to?
+    if (id === null) return null;
+    if (id[0] === 'a') return 'A';
+    if (id[0] === 'b') return 'B';
+    return 'shared';
+  }
+
+  // ---- Step simulation ------------------------------------------------------
+  // Faithfully replays the algorithm, recording one "cond" step and one
+  // "advance" step per loop iteration so every line executes visibly.
+  function buildSteps(ex) {
+    const steps = [];
+    let tA = ex.headA, tB = ex.headB;
+    let aSteps = 0, bSteps = 0;
+
+    steps.push({
+      kind: 'init', lines: [2, 3], tA, tB, iter: 0, aSteps, bSteps,
+      desc: 'Lines 2–3: <code>tempA = headA</code> (node ' + valOf(ex, tA) +
+            ') and <code>tempB = headB</code> (node ' + valOf(ex, tB) + '). Both travellers are at the start.'
+    });
+
+    let iter = 0, guard = 0;
+    while (guard++ < 100) {
+      const equal = (tA === tB);
+
+      // --- while-condition check (line 5) ---
+      let condDesc;
+      if (equal) {
+        condDesc = tA === null
+          ? 'Line 5: <code>tempA != tempB</code> → both are <code>null</code>, so they are equal. The loop <strong>ends</strong>. The lists never met.'
+          : 'Line 5: <code>tempA != tempB</code> → both point to the <strong>same node</strong> (value ' + valOf(ex, tA) + '). The loop <strong>ends</strong> — this is the intersection!';
+      } else {
+        condDesc = 'Line 5: <code>tempA</code> (' + descOf(ex, tA) + ') <code>!=</code> <code>tempB</code> (' +
+                   descOf(ex, tB) + ') → true, keep looping.';
+      }
+      steps.push({
+        kind: 'cond', lines: [5], tA, tB, iter, aSteps, bSteps, equal,
+        tone: equal ? 'meet' : 'info', desc: condDesc
+      });
+
+      if (equal) {
+        steps.push({
+          kind: 'return', lines: [9], tA, tB, iter, aSteps, bSteps, equal: true,
+          tone: 'meet',
+          desc: tA === null
+            ? 'Line 9: <code>return tempA</code> → returns <code>null</code>. ✓ Correctly reports no intersection.'
+            : 'Line 9: <code>return tempA</code> → returns the shared node <strong>' + valOf(ex, tA) + '</strong>. ✓ Done!'
+        });
+        break;
+      }
+
+      // --- advance both pointers (lines 6–7) ---
+      const crossA = (tA === null);
+      const crossB = (tB === null);
+      const nA = crossA ? ex.headB : (ex.next[tA] ?? null);
+      const nB = crossB ? ex.headA : (ex.next[tB] ?? null);
+      iter++;
+      if (!crossA) aSteps++;
+      if (!crossB) bSteps++;
+
+      let advDesc = 'Lines 6–7: advance both. ';
+      advDesc += crossA
+        ? '<code>tempA</code> was <code>null</code>, so it <strong>crosses over</strong> to <code>headB</code> (node ' + valOf(ex, nA) + '). '
+        : '<code>tempA</code> → <code>tempA.next</code> = ' + descOf(ex, nA) + '. ';
+      advDesc += crossB
+        ? '<code>tempB</code> was <code>null</code>, so it <strong>crosses over</strong> to <code>headA</code> (node ' + valOf(ex, nB) + ').'
+        : '<code>tempB</code> → <code>tempB.next</code> = ' + descOf(ex, nB) + '.';
+
+      steps.push({
+        kind: 'advance', lines: [6, 7], tA: nA, tB: nB, iter, aSteps, bSteps,
+        crossA, crossB, tone: (crossA || crossB) ? 'cross' : 'info', desc: advDesc
+      });
+
+      tA = nA; tB = nB;
+    }
+    return steps;
+  }
+
+  function descOf(ex, id) {
+    if (id === null) return '<code>null</code>';
+    const l = listOfId(ex, id);
+    const where = l === 'shared' ? 'shared tail' : 'list ' + l;
+    return 'node ' + valOf(ex, id) + ' <span style="opacity:0.7">(' + where + ')</span>';
+  }
+
+  // ---- SVG rendering --------------------------------------------------------
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function renderLists(ex, step) {
+    const c3 = cssVar('--text-3') || '#888780';
+    const cShared = '#D3D1C7', cSharedStroke = '#888780';
+    const cA = cssVar('--ptrA'), cB = cssVar('--ptrB');
+    let svg = '<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>';
+
+    // list labels
+    svg += '<text x="14" y="' + (22 + 24) + '" font-size="13" font-weight="600" fill="' + cA + '">A</text>';
+    svg += '<text x="14" y="' + (150 + 24) + '" font-size="13" font-weight="600" fill="' + cB + '">B</text>';
+
+    // edges
+    for (const [from, to] of ex.edges) {
+      const p1 = centerOf(ex, from);
+      const p2 = to === 'null' ? { cx: ex.nullPos.x, cy: ex.nullPos.y + NODE_H / 2 } : centerOf(ex, to);
+      // start at right edge of the "from" box, end just before target box
+      const sx = p1.cx + NODE_W / 2, sy = p1.cy;
+      let ex2, ey2;
+      if (to === 'null') { ex2 = ex.nullPos.x - 6; ey2 = ex.nullPos.y + NODE_H / 2; }
+      else { ex2 = p2.cx - NODE_W / 2 - 4; ey2 = p2.cy; }
+      svg += '<line x1="' + sx + '" y1="' + sy + '" x2="' + ex2 + '" y2="' + ey2 +
+             '" stroke="' + c3 + '" stroke-width="1.3" marker-end="url(#arr)"/>';
+    }
+
+    // null slot
+    const np = ex.nullPos;
+    svg += '<text x="' + (np.x + 4) + '" y="' + (np.y + NODE_H / 2 + 5) + '" font-size="13" font-family="monospace" fill="' + c3 + '">null</text>';
+
+    // nodes
+    const both = (step.tA !== null && step.tA === step.tB);
+    for (const id in ex.nodes) {
+      const n = ex.nodes[id];
+      const shared = listOfId(ex, id) === 'shared';
+      const isMeet = both && id === step.tA;
+      let fill, stroke, txt, sw = 1;
+      if (isMeet) { fill = '#9FE1CB'; stroke = '#0F6E56'; txt = '#04342C'; sw = 2.5; }
+      else if (shared) { fill = cShared; stroke = cSharedStroke; txt = '#3d3c38'; }
+      else { fill = 'var(--surface)'; stroke = 'var(--border-strong)'; txt = 'var(--text)'; }
+      svg += '<rect x="' + n.x + '" y="' + n.y + '" width="' + NODE_W + '" height="' + NODE_H +
+             '" rx="8" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"/>';
+      svg += '<text x="' + (n.x + NODE_W / 2) + '" y="' + (n.y + NODE_H / 2) +
+             '" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="600" fill="' + txt + '">' + n.val + '</text>';
+    }
+
+    // pointer markers
+    svg += ptrMarker(ex, step.tA, 'A', cA, true, both);
+    svg += ptrMarker(ex, step.tB, 'B', cB, false, both);
+
+    document.getElementById('lists-svg').innerHTML = svg;
+  }
+
+  // Draws a labelled pointer above (A) or below (B) its current node.
+  function ptrMarker(ex, id, label, color, above, both) {
+    const c = centerOf(ex, id);
+    // if both share a node, offset A left and B right so both are readable
+    let dx = 0;
+    if (both && id !== null) dx = above ? -14 : 14;
+    const cx = c.cx + dx;
+    const boxW = 30, boxH = 17;
+    let by, tipY1, tipY2;
+    if (above) { by = c.cy - NODE_H / 2 - 26; tipY1 = by + boxH; tipY2 = c.cy - NODE_H / 2 - 3; }
+    else { by = c.cy + NODE_H / 2 + 9; tipY1 = by; tipY2 = c.cy + NODE_H / 2 + 3; }
+    let svg = '<g>';
+    svg += '<line x1="' + cx + '" y1="' + tipY1 + '" x2="' + cx + '" y2="' + tipY2 +
+           '" stroke="' + color + '" stroke-width="1.6"/>';
+    svg += '<rect x="' + (cx - boxW / 2) + '" y="' + by + '" width="' + boxW + '" height="' + boxH +
+           '" rx="4" fill="' + color + '"/>';
+    svg += '<text x="' + cx + '" y="' + (by + boxH / 2 + 1) +
+           '" text-anchor="middle" dominant-baseline="central" font-size="10.5" font-weight="700" fill="#fff">temp' + label + '</text>';
+    svg += '</g>';
+    return svg;
+  }
+
+  function renderCode(step) {
+    let html = '';
+    const activeLines = step.lines || [];
+    for (const ln of CODE_LINES) {
+      const isActive = activeLines.indexOf(ln.n) !== -1;
+      let branchHtml = '';
+      if (isActive && ln.n === 5 && typeof step.equal === 'boolean') {
+        const cls = step.equal ? 'false' : 'true'; // "keep looping" = condition true
+        const label = step.equal ? '→ equal, exit' : '→ not equal, loop';
+        branchHtml = '<span class="branch-tag ' + cls + '">' + label + '</span>';
+      }
+      html += '<div class="code-line' + (isActive ? ' active' : '') + '">' +
+                '<span class="marker">▶</span>' +
+                '<span class="lnum">' + ln.n + '</span>' +
+                '<span class="code-text">' + (ln.html || '&nbsp;') + '</span>' +
+                branchHtml +
+              '</div>';
+    }
+    document.getElementById('code-block').innerHTML = html;
+    const badge = document.getElementById('line-badge');
+    badge.textContent = activeLines.length ? ('line ' + activeLines.join('–')) : 'paused';
+  }
+
+  function renderState(ex, step) {
+    const aVal = valOf(ex, step.tA), bVal = valOf(ex, step.tB);
+    document.getElementById('a-val').textContent = aVal;
+    document.getElementById('b-val').textContent = bVal;
+
+    function sub(id, steps) {
+      if (id === null) return 'reached null (' + steps + ' steps)';
+      const l = listOfId(ex, id);
+      const where = l === 'shared' ? 'in shared tail' : 'on list ' + l;
+      return where + ' · ' + steps + ' steps';
+    }
+    document.getElementById('a-sub').textContent = sub(step.tA, step.aSteps);
+    document.getElementById('b-sub').textContent = sub(step.tB, step.bSteps);
+
+    document.getElementById('m-iter').textContent = step.iter;
+    document.getElementById('m-astep').textContent = step.aSteps;
+    document.getElementById('m-bstep').textContent = step.bSteps;
+  }
+
+  // ---- Controller -----------------------------------------------------------
+  let exKey = 'intersect';
+  let ex = EXAMPLES[exKey];
+  let STEPS = buildSteps(ex);
+  let cur = 0, playing = false, timer = null;
+
+  const $num = document.getElementById('step-num');
+  const $desc = document.getElementById('step-desc');
+  const $progress = document.getElementById('progress-bar');
+  const $prev = document.getElementById('btn-prev');
+  const $next = document.getElementById('btn-next');
+  const $reset = document.getElementById('btn-reset');
+  const $play = document.getElementById('btn-play');
+  const $example = document.getElementById('btn-example');
+
+  function render() {
+    const step = STEPS[cur];
+    $num.textContent = 'Step ' + cur + ' / ' + (STEPS.length - 1);
+    $desc.className = 'step-desc ' + (step.tone || 'info');
+    $desc.innerHTML = step.desc;
+    $progress.style.width = ((cur / (STEPS.length - 1)) * 100) + '%';
+    renderCode(step);
+    renderState(ex, step);
+    renderLists(ex, step);
+    $prev.disabled = cur === 0;
+    $next.disabled = cur === STEPS.length - 1;
+  }
+
+  function goNext() { if (cur < STEPS.length - 1) { cur++; render(); } else stop(); }
+  function goPrev() { if (cur > 0) { cur--; render(); } }
+  function stop() { playing = false; clearInterval(timer); $play.textContent = '▶ Play'; }
+  function play() {
+    if (playing) { stop(); return; }
+    if (cur === STEPS.length - 1) { cur = 0; render(); }
+    playing = true; $play.textContent = '⏸ Pause';
+    timer = setInterval(function () { if (cur >= STEPS.length - 1) stop(); else goNext(); }, 1100);
+  }
+  function reset() { stop(); cur = 0; render(); }
+  function switchExample() {
+    stop();
+    exKey = (exKey === 'intersect') ? 'none' : 'intersect';
+    ex = EXAMPLES[exKey];
+    STEPS = buildSteps(ex);
+    cur = 0;
+    $example.textContent = 'Example: ' + ex.label + ' ⇄';
+    render();
+  }
+
+  $next.onclick = goNext;
+  $prev.onclick = goPrev;
+  $reset.onclick = reset;
+  $play.onclick = play;
+  $example.onclick = switchExample;
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { stop(); goNext(); }
+    else if (e.key === 'ArrowLeft') { stop(); goPrev(); }
+    else if (e.key === ' ') { e.preventDefault(); play(); }
+    else if (e.key === 'r' || e.key === 'R') { reset(); }
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
