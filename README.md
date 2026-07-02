@@ -46,10 +46,12 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     ├── palindrome-linked-list/        check a list reads the same both ways
     │   ├── PalindromeLinkedList.java
     │   └── ListNode.java
-    └── intersection-of-two-linked-lists/  two-pointer intersection finder
-        ├── Solution.java
-        ├── ListNode.java
-        └── intersection_of_two_linked_lists_two_pointer_visualizer.html
+    ├── intersection-of-two-linked-lists/  two-pointer intersection finder
+    │   ├── Solution.java
+    │   ├── ListNode.java
+    │   └── intersection_of_two_linked_lists_two_pointer_visualizer.html
+    └── contains-duplicate/             detect a repeated value with a hash set
+        └── ContainsDuplicate.java
 ```
 
 ---
@@ -365,6 +367,26 @@ javac *.java && java PalindromeLinkedList
 
 ```text
 result: false
+```
+
+---
+
+### 12. Contains Duplicate · [`java/contains-duplicate`](java/contains-duplicate)
+
+Checks whether an array holds any value more than once.
+
+- **What it does:** returns `true` if any value appears at least twice, `false` if every value is distinct.
+- **How it works:** walk the array once, adding each value to a `HashSet`. `add` returns `false` when the value is already present, so the first failed add means a duplicate was found.
+- **Complexity:** time `O(n)`, space `O(n)`.
+
+```bash
+cd java/contains-duplicate
+javac *.java && java ContainsDuplicate
+```
+
+```text
+has duplicate: true
+has duplicate: false
 ```
 
 ---
