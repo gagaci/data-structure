@@ -50,8 +50,11 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     │   ├── Solution.java
     │   ├── ListNode.java
     │   └── intersection_of_two_linked_lists_two_pointer_visualizer.html
-    └── contains-duplicate/             detect a repeated value with a hash set
-        └── ContainsDuplicate.java
+    ├── contains-duplicate/             detect a repeated value with a hash set
+    │   └── ContainsDuplicate.java
+    └── two-sum/                        find the pair that sums to a target with a hash map
+        ├── TwoSum.java
+        └── two_sum_hashmap_walkthrough.html
 ```
 
 ---
@@ -387,6 +390,26 @@ javac *.java && java ContainsDuplicate
 ```text
 has duplicate: true
 has duplicate: false
+```
+
+### 13. Two Sum · [`java/two-sum`](java/two-sum)
+
+Finds the indices of the two numbers in an array that add up to a target.
+
+- **What it does:** returns the pair of indices `[i, j]` such that `nums[i] + nums[j] == target`.
+- **How it works:** one pass with a `HashMap<value, index>`. For each element, look up its complement (`target - nums[i]`); if it was already stored, return both indices, otherwise record the current value so a later element can pair with it. Checking before storing keeps an element from matching itself.
+- **Complexity:** time `O(n)`, space `O(n)`.
+- **Walkthrough:** open [`two_sum_hashmap_walkthrough.html`](java/two-sum/two_sum_hashmap_walkthrough.html) for a step-by-step, line-by-line visualization of the map filling up until the complement clicks.
+
+```bash
+cd java/two-sum
+javac *.java && java TwoSum
+```
+
+```text
+[0, 1]
+[1, 2]
+[0, 1]
 ```
 
 ---
