@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyboard Row — Step Debugger</title>
+<style>
+  :root{
+    --bg:#111520;
+    --panel:#181d2a;
+    --panel2:#1e2432;
+    --line:#2a3143;
+    --text:#dbe1ec;
+    --muted:#7b8496;
+    --faint:#4a5266;
+    --row0:#f0b429;   /* top row  qwertyuiop */
+    --row1:#45d1b0;   /* mid row  asdfghjkl  */
+    --row2:#c08bfc;   /* bot row  zxcvbnm    */
+    --match:#5fe08d;
+    --miss:#ff6b7a;
+    --accent:#7aa2ff;
+    --keycap:#232a3a;
+    --keycap-edge:#2f3850;
+    --radius:10px;
+    --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px;}
+  body{padding:22px; min-height:100vh;}
+
+  .wrap{max-width:1180px; margin:0 auto;}
+
+  header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:18px;}
+  header h1{font-size:19px; font-weight:600; letter-spacing:-0.02em;}
+  header .sub{color:var(--muted); font-size:12.5px;}
+  .rowkey{display:flex; gap:14px; margin-left:auto; font-size:11.5px; color:var(--muted);}
+  .rowkey span{display:flex; align-items:center; gap:6px;}
+  .dot{width:9px; height:9px; border-radius:3px; display:inline-block;}
+  .dot.r0{background:var(--row0);} .dot.r1{background:var(--row1);} .dot.r2{background:var(--row2);}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid; grid-template-columns: 430px 1fr; gap:16px;}
+  @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+  .panel h2{font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted);
+    padding:10px 14px; border-bottom:1px solid var(--line); font-weight:600;}
+
+  /* ---------- code ---------- */
+  .code{padding:10px 0; font-size:12.6px; line-height:1.72; overflow-x:auto;}
+  .cl{display:flex; white-space:pre; padding:0 14px; transition:background .15s;}
+  .cl .ln{width:26px; color:var(--faint); text-align:right; margin-right:14px; flex-shrink:0; user-select:none;}
+  .cl.active{background:rgba(122,162,255,0.13); box-shadow:inset 3px 0 0 var(--accent);}
+  .cl.active .ln{color:var(--accent);}
+  .k{color:#c792ea;} .s{color:#a5d6a7;} .t{color:#82aaff;} .cm{color:var(--faint);} .n{color:#f7c96e;}
+
+  /* variables */
+  .vars{padding:12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; font-size:12.5px; border-top:1px solid var(--line);}
+  .var{display:flex; gap:8px; min-width:0;}
+  .var .vn{color:var(--muted); flex-shrink:0;}
+  .var .vv{color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .var .vv.changed{color:var(--n, #f7c96e); animation:pop .35s ease;}
+  .var .vv.empty{color:var(--faint);}
+  @keyframes pop{0%{transform:scale(1.25);} 100%{transform:scale(1);}}
+
+  /* ---------- narration ---------- */
+  .narr{padding:14px; font-size:13.5px; line-height:1.6; min-height:74px; border-bottom:1px solid var(--line); background:var(--panel2);}
+  .narr b{color:#fff;}
+  .narr .hl0{color:var(--row0);} .narr .hl1{color:var(--row1);} .narr .hl2{color:var(--row2);}
+  .narr .good{color:var(--match);} .narr .bad{color:var(--miss);} .narr .acc{color:var(--accent);}
+
+  /* ---------- word strip ---------- */
+  .wordzone{padding:14px; border-bottom:1px solid var(--line);}
+  .wordlist{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+  .wchip{padding:4px 10px; border-radius:6px; border:1px solid var(--line); color:var(--muted); font-size:12.5px; transition:all .2s;}
+  .wchip.now{border-color:var(--accent); color:var(--text); background:rgba(122,162,255,0.1);}
+  .wchip.kept{border-color:var(--match); color:var(--match);}
+  .wchip.dropped{border-color:transparent; color:var(--faint); text-decoration:line-through;}
+  .letters{display:flex; gap:6px; min-height:46px; align-items:center; flex-wrap:wrap;}
+  .lt{width:38px; height:42px; border-radius:8px; background:var(--keycap); border:1px solid var(--keycap-edge);
+      display:flex; align-items:center; justify-content:center; font-size:17px; position:relative; transition:all .2s;}
+  .lt .st{position:absolute; bottom:-18px; font-size:10px; color:var(--faint);}
+  .lt.cur{border-color:var(--accent); box-shadow:0 0 0 2px rgba(122,162,255,.35); transform:translateY(-3px);}
+  .lt.ok{border-color:var(--match); color:var(--match);}
+  .lt.bad{border-color:var(--miss); color:var(--miss); animation:shake .3s;}
+  .lt.dim{opacity:.35;}
+  @keyframes shake{25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
+
+  /* ---------- math ---------- */
+  .math{padding:16px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+        gap:10px; min-height:86px; font-size:15px; flex-wrap:wrap;}
+  .math .box{background:var(--keycap); border:1px solid var(--keycap-edge); border-radius:8px; padding:8px 12px; text-align:center;}
+  .math .box small{display:block; font-size:9.5px; color:var(--muted); margin-top:3px; letter-spacing:.05em;}
+  .math .op{color:var(--muted); font-size:18px;}
+  .math .res{border-color:var(--accent); color:var(--accent);}
+  .math .idle{color:var(--faint); font-size:12.5px;}
+
+  /* ---------- mapping strip ---------- */
+  .mapwrap{padding:14px; border-bottom:1px solid var(--line); overflow-x:auto;}
+  .map{display:flex; gap:2px; width:max-content; margin:0 auto;}
+  .mc{width:30px; text-align:center;}
+  .mc .a{font-size:10.5px; color:var(--muted); margin-bottom:3px;}
+  .mc .d{height:32px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+         font-size:14px; background:var(--keycap); border:1px solid var(--keycap-edge); transition:all .18s;}
+  .mc .d.v0{color:var(--row0);} .mc .d.v1{color:var(--row1);} .mc .d.v2{color:var(--row2);}
+  .mc.hit .d{transform:translateY(-4px); box-shadow:0 4px 14px rgba(0,0,0,.5), 0 0 0 2px var(--accent); background:#242c40;}
+  .mc.hit .a{color:var(--accent); font-weight:700;}
+  .mc .ix{font-size:9px; color:var(--faint); margin-top:3px;}
+  .mc.hit .ix{color:var(--accent);}
+
+  /* ---------- keyboard ---------- */
+  .kb{padding:18px 14px 22px; display:flex; flex-direction:column; gap:7px; align-items:center;}
+  .krow{display:flex; gap:6px;}
+  .key{width:42px; height:44px; border-radius:8px; background:var(--keycap);
+       border:1px solid var(--keycap-edge); border-bottom-width:3px;
+       display:flex; align-items:center; justify-content:center; font-size:15px;
+       color:var(--muted); position:relative; transition:all .15s;}
+  .key::after{content:""; position:absolute; top:5px; left:6px; width:6px; height:3px; border-radius:2px; opacity:.8;}
+  .key.r0::after{background:var(--row0);} .key.r1::after{background:var(--row1);} .key.r2::after{background:var(--row2);}
+  .krow.target .key{border-color:color-mix(in srgb, var(--rc) 55%, var(--keycap-edge)); color:var(--text);}
+  .key.press{transform:translateY(2px); border-bottom-width:1px; color:#fff;
+             background:color-mix(in srgb, var(--rc) 30%, var(--keycap));
+             box-shadow:0 0 18px color-mix(in srgb, var(--rc) 45%, transparent);}
+  .key.press.wrong{background:color-mix(in srgb, var(--miss) 30%, var(--keycap));
+             box-shadow:0 0 18px color-mix(in srgb, var(--miss) 45%, transparent);}
+  .krow[data-r="0"]{--rc:var(--row0);} .krow[data-r="1"]{--rc:var(--row1);} .krow[data-r="2"]{--rc:var(--row2);}
+  .rowtag{font-size:10px; color:var(--faint); width:52px; text-align:right; margin-right:8px; align-self:center;}
+  .krowline{display:flex; align-items:center;}
+  .krow.target ~ * {}
+  .krowline.target .rowtag{color:var(--text); font-weight:700;}
+
+  /* ---------- result ---------- */
+  .result{padding:12px 14px; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .result .lab{color:var(--muted);}
+  .rchip{padding:3px 10px; border-radius:6px; background:rgba(95,224,141,.12); border:1px solid rgba(95,224,141,.4);
+         color:var(--match); animation:pop .35s ease;}
+  .result .none{color:var(--faint);}
+
+  /* ---------- controls ---------- */
+  .controls{margin-top:16px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+            padding:12px 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  button{font-family:var(--mono); font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer;
+         background:var(--keycap); color:var(--text); border:1px solid var(--keycap-edge); transition:all .15s;}
+  button:hover:not(:disabled){border-color:var(--accent); color:#fff;}
+  button:disabled{opacity:.35; cursor:default;}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#0d1220; font-weight:700;}
+  button.primary:hover{filter:brightness(1.12); color:#0d1220;}
+  .stepcount{color:var(--muted); font-size:12px; margin-left:2px; min-width:96px;}
+  .bar{flex:1; height:4px; background:var(--line); border-radius:2px; min-width:80px; overflow:hidden;}
+  .bar i{display:block; height:100%; background:var(--accent); width:0%; transition:width .2s; border-radius:2px;}
+  .wordsinput{display:flex; gap:8px; flex:1 1 100%; margin-top:4px;}
+  .wordsinput input{flex:1; font-family:var(--mono); font-size:13px; padding:8px 12px; border-radius:8px;
+     background:var(--bg); border:1px solid var(--line); color:var(--text); outline:none;}
+  .wordsinput input:focus{border-color:var(--accent);}
+  .hint{flex-basis:100%; font-size:11px; color:var(--faint); margin-top:2px;}
+  kbd{background:var(--keycap); border:1px solid var(--keycap-edge); border-bottom-width:2px;
+      border-radius:4px; padding:0 5px; font-size:10.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Keyboard Row · step debugger</h1>
+    <span class="sub">LeetCode 500 — watch <code style="color:var(--accent)">rows.charAt(c - 'a')</code> run, one step at a time</span>
+    <div class="rowkey">
+      <span><i class="dot r0"></i>row 0 · qwerty…</span>
+      <span><i class="dot r1"></i>row 1 · asdf…</span>
+      <span><i class="dot r2"></i>row 2 · zxcv…</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: code + vars -->
+    <div class="panel">
+      <h2>Java source</h2>
+      <div class="code" id="code"></div>
+      <h2>Variables</h2>
+      <div class="vars" id="vars"></div>
+    </div>
+
+    <!-- RIGHT: visualization -->
+    <div class="panel">
+      <div class="narr" id="narr">Press <b>Next ›</b> (or the → key) to start stepping through the algorithm.</div>
+
+      <div class="wordzone">
+        <div class="wordlist" id="wordlist"></div>
+        <div class="letters" id="letters"></div>
+      </div>
+
+      <div class="math" id="math"><span class="idle">char arithmetic will appear here — e.g. 'd' (100) − 'a' (97) = 3</span></div>
+
+      <div class="mapwrap"><div class="map" id="map"></div></div>
+
+      <div class="kb" id="kb"></div>
+
+      <div class="result"><span class="lab">result =</span> <span id="resbox" class="none">[ ]</span></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btnReset">⟲ Reset</button>
+    <button id="btnPrev">‹ Prev</button>
+    <button id="btnNext" class="primary">Next ›</button>
+    <button id="btnPlay">▶ Auto-play</button>
+    <span class="stepcount" id="stepcount">step 0 / 0</span>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="wordsinput">
+      <input id="wordsIn" value="Hello Alaska Dad Peace" spellcheck="false" aria-label="words to test">
+      <button id="btnLoad">Load words</button>
+    </div>
+    <div class="hint">shortcuts: <kbd>→</kbd> next · <kbd>←</kbd> prev · <kbd>space</kbd> play/pause. Try your own words above (letters only).</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const ROWS = "12210111011122000010020202";
+const KB = ["qwertyuiop","asdfghjkl","zxcvbnm"];
+
+/* ---------- code panel ---------- */
+const CODE = [
+  ['<span class="k">public</span> <span class="t">String</span>[] <span class="n">findWords</span>(<span class="t">String</span>[] words) {',1],
+  ['    <span class="t">String</span> rows = <span class="s">"12210111011122000010020202"</span>;',2],
+  ['    <span class="t">List</span>&lt;<span class="t">String</span>&gt; result = <span class="k">new</span> <span class="t">ArrayList</span>&lt;&gt;();',3],
+  ['    <span class="k">for</span> (<span class="t">String</span> word : words) {',4],
+  ['        <span class="t">String</span> lower = word.<span class="n">toLowerCase</span>();',5],
+  ['        <span class="k">char</span> target = rows.<span class="n">charAt</span>(lower.<span class="n">charAt</span>(<span class="s">0</span>) - <span class="s">\'a\'</span>);',6],
+  ['        <span class="k">boolean</span> sameRow = <span class="k">true</span>;',7],
+  ['        <span class="k">for</span> (<span class="k">char</span> c : lower.<span class="n">toCharArray</span>()) {',8],
+  ['            <span class="k">if</span> (rows.<span class="n">charAt</span>(c - <span class="s">\'a\'</span>) != target) {',9],
+  ['                sameRow = <span class="k">false</span>;',10],
+  ['                <span class="k">break</span>;',11],
+  ['            }',12],
+  ['        }',13],
+  ['        <span class="k">if</span> (sameRow) result.<span class="n">add</span>(word);',14],
+  ['    }',15],
+  ['    <span class="k">return</span> result.<span class="n">toArray</span>(<span class="k">new</span> <span class="t">String</span>[<span class="s">0</span>]);',16],
+  ['}',17],
+];
+const codeEl = document.getElementById('code');
+codeEl.innerHTML = CODE.map(([html,n]) =>
+  `<div class="cl" id="cl-${n}"><span class="ln">${n}</span><span>${html}</span></div>`).join('');
+
+/* ---------- build static widgets ---------- */
+const mapEl = document.getElementById('map');
+mapEl.innerHTML = [...Array(26)].map((_,i)=>{
+  const ch = String.fromCharCode(97+i), d = ROWS[i];
+  return `<div class="mc" id="mc-${i}"><div class="a">${ch}</div><div class="d v${d}">${d}</div><div class="ix">${i}</div></div>`;
+}).join('');
+
+const kbEl = document.getElementById('kb');
+kbEl.innerHTML = KB.map((row,r)=>
+  `<div class="krowline" id="krl-${r}"><span class="rowtag">row ${r}</span><div class="krow" data-r="${r}" id="krow-${r}">`+
+  [...row].map(ch=>`<div class="key r${r}" id="key-${ch}">${ch}</div>`).join('')+`</div></div>`).join('');
+
+/* ---------- step generation (simulates the Java) ---------- */
+function buildSteps(words){
+  const steps = [];
+  const base = { line:0, narr:'', vars:{}, ui:{} };
+  const push = (s)=>steps.push(Object.assign({}, base, s, {vars:Object.assign({}, s.vars||{}), ui:Object.assign({}, s.ui||{})}));
+
+  const result = [];
+  const wordStatus = {}; // wi -> 'kept'|'dropped'
+
+  push({line:2, narr:`The lookup string is created. Each of its 26 characters answers: <b>which row is letter <span class="acc">index</span> on?</b> Position 0 = 'a', position 25 = 'z'.`,
+        vars:{rows:'"122101…0202"', result:'[ ]'}, ui:{res:[...result], ws:{...wordStatus}}});
+  push({line:3, narr:`An empty <b>result</b> list is created — one-row words will be collected here.`,
+        vars:{rows:'"122101…0202"', result:'[ ]'}, ui:{res:[...result], ws:{...wordStatus}}});
+
+  words.forEach((word, wi)=>{
+    const V = {rows:'"122101…0202"'};
+    V.word = `"${word}"`;
+    push({line:4, narr:`Outer loop picks the next word: <b>"${word}"</b>.`,
+          vars:{...V, result:fmt(result)}, ui:{wi, res:[...result], ws:{...wordStatus}}});
+
+    const lower = word.toLowerCase();
+    V.lower = `"${lower}"`;
+    push({line:5, narr:`Lowercase it first — char math only works on a–z. <b>"${word}" → "${lower}"</b>.`,
+          vars:{...V, result:fmt(result), changed:'lower'}, ui:{wi, lower, res:[...result], ws:{...wordStatus}}});
+
+    const c0 = lower[0], code0 = c0.charCodeAt(0), idx0 = code0 - 97;
+    push({line:6, narr:`<b>lower.charAt(0)</b> grabs the first letter: <b>'${c0}'</b>. A char is just a number — '${c0}' is <b>${code0}</b>, 'a' is <b>97</b>.`,
+          vars:{...V, result:fmt(result)},
+          ui:{wi, lower, charIdx:0, key:c0, math:{c:c0, code:code0}, res:[...result], ws:{...wordStatus}}});
+
+    const target = ROWS[idx0];
+    V.target = `'${target}'`;
+    push({line:6, narr:`${code0} − 97 = <b>${idx0}</b> → <b>rows.charAt(${idx0})</b> is <b class="hl${target}">'${target}'</b>. So the whole word must live on <b class="hl${target}">row ${target}</b>.`,
+          vars:{...V, result:fmt(result), changed:'target'},
+          ui:{wi, lower, charIdx:0, key:c0, math:{c:c0, code:code0, idx:idx0, row:target}, mapIdx:idx0, target, res:[...result], ws:{...wordStatus}}});
+
+    V.sameRow = 'true';
+    push({line:7, narr:`Optimistic start: <b>sameRow = true</b>. One mismatching letter will flip it.`,
+          vars:{...V, result:fmt(result), changed:'sameRow'},
+          ui:{wi, lower, target, res:[...result], ws:{...wordStatus}}});
+
+    let same = true;
+    const marks = []; // per-letter 'ok' | 'bad'
+    for(let i=0; i<lower.length; i++){
+      const c = lower[i], code = c.charCodeAt(0), idx = code - 97, r = ROWS[idx];
+      V.c = `'${c}'`;
+      push({line:8, narr:`Inner loop, letter ${i+1} of ${lower.length}: <b>c = '${c}'</b> (code ${code}).`,
+            vars:{...V, result:fmt(result), changed:'c'},
+            ui:{wi, lower, target, charIdx:i, key:c, marks:[...marks], math:{c, code}, res:[...result], ws:{...wordStatus}}});
+
+      const ok = r === target;
+      if(ok){
+        marks.push('ok');
+        push({line:9, narr:`${code} − 97 = <b>${idx}</b> → rows.charAt(${idx}) = <b class="hl${r}">'${r}'</b>. Same as target <b class="hl${target}">'${target}'</b> — <span class="good">match ✓</span>, keep looping.`,
+              vars:{...V, result:fmt(result)},
+              ui:{wi, lower, target, charIdx:i, key:c, marks:[...marks], mapIdx:idx, math:{c, code, idx, row:r}, verdict:'ok', res:[...result], ws:{...wordStatus}}});
+      } else {
+        marks.push('bad');
+        push({line:9, narr:`${code} − 97 = <b>${idx}</b> → rows.charAt(${idx}) = <b class="hl${r}">'${r}'</b>, but target is <b class="hl${target}">'${target}'</b> — <span class="bad">mismatch ✗</span>. '${c}' lives on a different row.`,
+              vars:{...V, result:fmt(result)},
+              ui:{wi, lower, target, charIdx:i, key:c, marks:[...marks], mapIdx:idx, math:{c, code, idx, row:r}, verdict:'bad', res:[...result], ws:{...wordStatus}}});
+        V.sameRow = 'false';
+        push({line:10, narr:`<b>sameRow = false</b> — the word is disqualified.`,
+              vars:{...V, result:fmt(result), changed:'sameRow'},
+              ui:{wi, lower, target, marks:[...marks], res:[...result], ws:{...wordStatus}}});
+        push({line:11, narr:`<b>break</b> — no point checking the remaining letters.`,
+              vars:{...V, result:fmt(result)},
+              ui:{wi, lower, target, marks:[...marks], res:[...result], ws:{...wordStatus}}});
+        same = false;
+        break;
+      }
+    }
+
+    delete V.c;
+    if(same){
+      result.push(word);
+      wordStatus[wi] = 'kept';
+      push({line:14, narr:`sameRow is still <b>true</b> → every letter of "${lower}" sits on <b class="hl${target}">row ${target}</b>. <span class="good">result.add("${word}")</span>`,
+            vars:{...V, result:fmt(result), changed:'result'},
+            ui:{wi, lower, target, marks, res:[...result], ws:{...wordStatus}, added:true}});
+    } else {
+      wordStatus[wi] = 'dropped';
+      push({line:14, narr:`sameRow is <b>false</b> → the <b>if</b> does nothing. <span class="bad">"${word}" is skipped.</span>`,
+            vars:{...V, sameRow:'false', result:fmt(result)},
+            ui:{wi, lower, target, marks, res:[...result], ws:{...wordStatus}}});
+    }
+  });
+
+  push({line:16, narr:`All words checked. Return <b>${fmt(result)}</b> — the words you can type with one row of the keyboard. 🎉`,
+        vars:{result:fmt(result)}, ui:{res:[...result], ws:{...wordStatus}, done:true}});
+  return steps;
+}
+function fmt(arr){ return arr.length ? '[' + arr.map(w=>`"${w}"`).join(', ') + ']' : '[ ]'; }
+
+/* ---------- rendering ---------- */
+const narrEl = document.getElementById('narr');
+const varsEl = document.getElementById('vars');
+const wlEl = document.getElementById('wordlist');
+const ltEl = document.getElementById('letters');
+const mathEl = document.getElementById('math');
+const resEl = document.getElementById('resbox');
+const stepcountEl = document.getElementById('stepcount');
+const barfill = document.getElementById('barfill');
+
+let WORDS = [], STEPS = [], cur = -1, playing = false, timer = null;
+
+function render(){
+  const s = cur >= 0 ? STEPS[cur] : null;
+  const ui = s ? s.ui : {};
+
+  // code highlight
+  document.querySelectorAll('.cl').forEach(el=>el.classList.remove('active'));
+  if(s) { const el = document.getElementById('cl-'+s.line); if(el) el.classList.add('active'); }
+
+  // narration
+  narrEl.innerHTML = s ? s.narr : 'Press <b>Next ›</b> (or the → key) to start stepping through the algorithm.';
+
+  // variables
+  const order = ['rows','word','lower','target','sameRow','c','result'];
+  const v = s ? s.vars : {};
+  varsEl.innerHTML = order.map(k=>{
+    const has = v[k] !== undefined;
+    const cls = has ? (v.changed === k ? 'vv changed' : 'vv') : 'vv empty';
+    return `<div class="var"><span class="vn">${k}</span><span class="${cls}">${has ? esc(v[k]) : '—'}</span></div>`;
+  }).join('');
+
+  // word chips
+  const ws = ui.ws || {};
+  wlEl.innerHTML = WORDS.map((w,i)=>{
+    let cls = 'wchip';
+    if(ws[i]==='kept') cls+=' kept'; else if(ws[i]==='dropped') cls+=' dropped';
+    if(i===ui.wi && !ui.done) cls+=' now';
+    return `<span class="${cls}">${esc(w)}</span>`;
+  }).join('');
+
+  // letters of current word
+  if(ui.lower){
+    const marks = ui.marks || [];
+    ltEl.innerHTML = [...ui.lower].map((ch,i)=>{
+      let cls = 'lt';
+      if(marks[i]==='ok') cls+=' ok'; else if(marks[i]==='bad') cls+=' bad';
+      if(i===ui.charIdx) cls+=' cur';
+      if(marks[i]===undefined && i!==ui.charIdx) cls+=' dim';
+      const st = ROWS[ch.charCodeAt(0)-97];
+      const showSt = marks[i]!==undefined || i===ui.charIdx ? `<span class="st">row ${st}</span>` : '';
+      return `<div class="${cls}">${ch}${showSt}</div>`;
+    }).join('');
+  } else {
+    ltEl.innerHTML = `<span style="color:var(--faint);font-size:12px;">current word will appear here, letter by letter</span>`;
+  }
+
+  // math
+  const m = ui.math;
+  if(m){
+    let html = `<div class="box">'${m.c}'<small>char</small></div><span class="op">=</span><div class="box">${m.code}<small>ASCII</small></div>`;
+    if(m.idx !== undefined){
+      html += `<span class="op">−</span><div class="box">97<small>'a'</small></div><span class="op">=</span>
+               <div class="box res">${m.idx}<small>index</small></div><span class="op">→</span>
+               <div class="box" style="border-color:var(--row${m.row}); color:var(--row${m.row})">'${m.row}'<small>rows.charAt(${m.idx})</small></div>`;
+    } else {
+      html += `<span class="op">−</span><div class="box">97<small>'a'</small></div><span class="op">=</span><div class="box res">?<small>next step</small></div>`;
+    }
+    mathEl.innerHTML = html;
+  } else {
+    mathEl.innerHTML = `<span class="idle">char arithmetic will appear here — e.g. 'd' (100) − 'a' (97) = 3</span>`;
+  }
+
+  // mapping strip
+  document.querySelectorAll('.mc').forEach(el=>el.classList.remove('hit'));
+  if(ui.mapIdx !== undefined){
+    const el = document.getElementById('mc-'+ui.mapIdx);
+    if(el){ el.classList.add('hit'); el.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}); }
+  }
+
+  // keyboard
+  document.querySelectorAll('.key').forEach(el=>el.classList.remove('press','wrong'));
+  document.querySelectorAll('.krow').forEach(el=>el.classList.remove('target'));
+  document.querySelectorAll('.krowline').forEach(el=>el.classList.remove('target'));
+  if(ui.target !== undefined){
+    const r = document.getElementById('krow-'+ui.target);
+    if(r) r.classList.add('target');
+    const rl = document.getElementById('krl-'+ui.target);
+    if(rl) rl.classList.add('target');
+  }
+  if(ui.key){
+    const k = document.getElementById('key-'+ui.key);
+    if(k){ k.classList.add('press'); if(ui.verdict==='bad') k.classList.add('wrong'); }
+  }
+
+  // result
+  const res = ui.res || [];
+  resEl.className = res.length ? '' : 'none';
+  resEl.innerHTML = res.length ? res.map(w=>`<span class="rchip">"${esc(w)}"</span>`).join(' ') : '[ ]';
+
+  // controls
+  stepcountEl.textContent = `step ${cur+1} / ${STEPS.length}`;
+  barfill.style.width = ((cur+1)/STEPS.length*100) + '%';
+  document.getElementById('btnPrev').disabled = cur < 0;
+  document.getElementById('btnNext').disabled = cur >= STEPS.length-1;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+/* ---------- controls ---------- */
+function next(){ if(cur < STEPS.length-1){ cur++; render(); } else stopPlay(); }
+function prev(){ if(cur >= 0){ cur--; render(); } }
+function reset(){ stopPlay(); cur = -1; render(); }
+function stopPlay(){ playing=false; clearInterval(timer); document.getElementById('btnPlay').textContent='▶ Auto-play'; }
+function togglePlay(){
+  if(playing){ stopPlay(); return; }
+  if(cur >= STEPS.length-1) cur = -1;
+  playing = true;
+  document.getElementById('btnPlay').textContent='⏸ Pause';
+  timer = setInterval(()=>{ next(); if(cur>=STEPS.length-1) stopPlay(); }, 1400);
+}
+function load(){
+  stopPlay();
+  const raw = document.getElementById('wordsIn').value.trim();
+  let words = raw.split(/[\s,]+/).filter(Boolean).map(w=>w.replace(/[^a-zA-Z]/g,'')).filter(Boolean);
+  if(!words.length) words = ['Hello','Alaska','Dad','Peace'];
+  words = words.slice(0, 8).map(w=>w.slice(0, 12));
+  WORDS = words;
+  STEPS = buildSteps(WORDS);
+  cur = -1;
+  render();
+}
+
+document.getElementById('btnNext').onclick = next;
+document.getElementById('btnPrev').onclick = prev;
+document.getElementById('btnReset').onclick = reset;
+document.getElementById('btnPlay').onclick = togglePlay;
+document.getElementById('btnLoad').onclick = load;
+document.getElementById('wordsIn').addEventListener('keydown', e=>{ if(e.key==='Enter') load(); });
+window.addEventListener('keydown', e=>{
+  if(e.target.tagName === 'INPUT') return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); stopPlay(); next(); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); stopPlay(); prev(); }
+  if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+load();
+</script>
+</body>
+</html>
