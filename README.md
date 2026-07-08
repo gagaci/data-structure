@@ -52,9 +52,12 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     │   └── intersection_of_two_linked_lists_two_pointer_visualizer.html
     ├── contains-duplicate/             detect a repeated value with a hash set
     │   └── ContainsDuplicate.java
-    └── two-sum/                        find the pair that sums to a target with a hash map
-        ├── TwoSum.java
-        └── two_sum_hashmap_walkthrough.html
+    ├── two-sum/                        find the pair that sums to a target with a hash map
+    │   ├── TwoSum.java
+    │   └── two_sum_hashmap_walkthrough.html
+    └── keyboard-row/                   words typable with a single keyboard row
+        ├── KeyboardRow.java
+        └── keyboard_row_step_debugger.html
 ```
 
 ---
@@ -97,6 +100,9 @@ javac *.java && java Main
 | 10 | Merge two sorted linked lists | Java | [`java/merge-two-sorted-linked-list`](java/merge-two-sorted-linked-list) |
 | 11 | Palindrome linked list | Java | [`java/palindrome-linked-list`](java/palindrome-linked-list) |
 | 12 | Intersection of two linked lists — two pointers | Java | [`java/intersection-of-two-linked-lists`](java/intersection-of-two-linked-lists) |
+| 13 | Contains duplicate — hash set | Java | [`java/contains-duplicate`](java/contains-duplicate) |
+| 14 | Two sum — hash map | Java | [`java/two-sum`](java/two-sum) |
+| 15 | Keyboard row — words typable with a single keyboard row | Java | [`java/keyboard-row`](java/keyboard-row) |
 
 ---
 
@@ -410,6 +416,28 @@ javac *.java && java TwoSum
 [0, 1]
 [1, 2]
 [0, 1]
+```
+
+---
+
+### 14. Keyboard Row · [`java/keyboard-row`](java/keyboard-row)
+
+Finds which words can be typed using letters from **one row** of an American keyboard (LeetCode 500).
+
+- **What it does:** returns the subset of the input words whose letters all sit on the same keyboard row (`qwertyuiop`, `asdfghjkl`, or `zxcvbnm`).
+- **How it works:** a 26-character lookup string `rows` maps each letter to its row via `rows.charAt(c - 'a')`. For each word, read the row of the first letter as the `target`, then scan the rest — the moment a letter maps to a different row the word is disqualified and the inner loop breaks. Case is normalized with `toLowerCase()` first so the char arithmetic stays in `a`–`z`.
+- **Complexity:** time `O(n · k)` for `n` words of average length `k`, space `O(1)` beyond the output.
+- **Walkthrough:** open [`keyboard_row_step_debugger.html`](java/keyboard-row/keyboard_row_step_debugger.html) for a step-by-step debugger — watch `rows.charAt(c - 'a')` run one letter at a time, with a live keyboard, the char arithmetic, and the row-mapping strip. Type your own words to test.
+
+```bash
+cd java/keyboard-row
+javac *.java && java KeyboardRow
+```
+
+```text
+[Alaska, Dad]
+[]
+[adsdf, sfd]
 ```
 
 ---
