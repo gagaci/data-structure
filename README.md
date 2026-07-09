@@ -55,9 +55,12 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     ├── two-sum/                        find the pair that sums to a target with a hash map
     │   ├── TwoSum.java
     │   └── two_sum_hashmap_walkthrough.html
-    └── keyboard-row/                   words typable with a single keyboard row
-        ├── KeyboardRow.java
-        └── keyboard_row_step_debugger.html
+    ├── keyboard-row/                   words typable with a single keyboard row
+    │   ├── KeyboardRow.java
+    │   └── keyboard_row_step_debugger.html
+    └── ransom-note/                    build a note from magazine letters with a hash map
+        ├── Solution.java
+        └── ransom_note_step_debugger.html
 ```
 
 ---
@@ -103,6 +106,7 @@ javac *.java && java Main
 | 13 | Contains duplicate — hash set | Java | [`java/contains-duplicate`](java/contains-duplicate) |
 | 14 | Two sum — hash map | Java | [`java/two-sum`](java/two-sum) |
 | 15 | Keyboard row — words typable with a single keyboard row | Java | [`java/keyboard-row`](java/keyboard-row) |
+| 16 | Ransom note — build a note from magazine letters with a hash map | Java | [`java/ransom-note`](java/ransom-note) |
 
 ---
 
@@ -438,6 +442,29 @@ javac *.java && java KeyboardRow
 [Alaska, Dad]
 []
 [adsdf, sfd]
+```
+
+---
+
+### 15. Ransom Note · [`java/ransom-note`](java/ransom-note)
+
+Decides whether a **ransom note** can be built using only the letters found in a **magazine**, each magazine letter used at most once (LeetCode 383).
+
+- **What it does:** returns `true` if every character of `ransomNote` can be covered by the characters in `magazine`, otherwise `false`.
+- **How it works:** a two-pass tally. The first loop walks the magazine and counts each character into a `HashMap<Character, Integer>` — the inventory of available letters. The second loop walks the ransom note and spends from that inventory: if a needed letter has `0` remaining it returns `false` immediately, otherwise it decrements the count. Surviving the whole note means every character was covered, so it returns `true`.
+- **Complexity:** time `O(m + n)` for magazine length `m` and note length `n`, space `O(k)` for the `k` distinct characters counted.
+- **Walkthrough:** open [`ransom_note_step_debugger.html`](java/ransom-note/ransom_note_step_debugger.html) for a step-by-step debugger — watch the map fill during the magazine pass, then drain during the ransom-note pass, with every step mapped to a highlighted line of code. Type your own inputs to test.
+
+```bash
+cd java/ransom-note
+javac *.java && java Solution
+```
+
+```text
+false
+false
+true
+true
 ```
 
 ---
