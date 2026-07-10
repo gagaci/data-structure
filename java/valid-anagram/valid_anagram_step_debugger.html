@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>isAnagram — step debugger</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f7f4ec;
+    --panel: #fffdf7;
+    --line: #ded8c7;
+    --line-strong: #c3bca6;
+    --muted: #6f6a5c;
+    --build: #2f6f5b;      /* count s phase — green */
+    --build-bg: #e2efe9;
+    --spend: #a8582a;      /* consume t phase — clay/rust */
+    --spend-bg: #f3e5da;
+    --check: #4a5a8a;      /* length-check phase — indigo */
+    --check-bg: #e5e8f2;
+    --fail: #9e2f2f;
+    --fail-bg: #f5e2e0;
+    --pass: #2f6f5b;
+    --highlight: #f0d98a;
+    --mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    line-height: 1.5;
+    padding: 24px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  header { margin-bottom: 22px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 6px;
+  }
+  h1 { font-size: 22px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  h1 code { font-weight: 500; }
+  .sub { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+
+  .inputs {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+    margin: 20px 0 8px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .field input {
+    font-family: var(--mono); font-size: 15px; padding: 8px 10px;
+    border: 1.5px solid var(--line-strong); background: var(--panel);
+    color: var(--ink); border-radius: 0; width: 220px;
+  }
+  .field input:focus { outline: 2px solid var(--highlight); outline-offset: 1px; }
+  .field input.bad { border-color: var(--fail); }
+  .hint { font-size: 11px; color: var(--muted); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 24px; }
+  button {
+    font-family: var(--mono); font-size: 13px; padding: 8px 16px;
+    border: 1.5px solid var(--ink); background: var(--panel); color: var(--ink);
+    cursor: pointer; border-radius: 0; transition: transform .05s, background .12s;
+  }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.primary:hover:not(:disabled) { background: #000; }
+
+  .stage {
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 18px;
+  }
+  @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1.5px solid var(--line-strong);
+    padding: 16px 18px 18px;
+  }
+  .card h2 {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    margin: 0 0 14px; color: var(--muted); font-weight: 500;
+  }
+
+  /* code */
+  pre.code { margin: 0; font-size: 13px; line-height: 1.85; white-space: pre; overflow-x: auto; }
+  .ln { display: block; padding: 1px 8px; margin: 0 -8px; border-left: 3px solid transparent; }
+  .ln.active { background: var(--highlight); border-left-color: var(--ink); }
+  .ln.active.phase-check { background: var(--check-bg); border-left-color: var(--check); }
+  .ln.active.phase-build { background: var(--build-bg); border-left-color: var(--build); }
+  .ln.active.phase-spend { background: var(--spend-bg); border-left-color: var(--spend); }
+  .ln.active.phase-fail  { background: var(--fail-bg); border-left-color: var(--fail); }
+  .kw { color: #7a4fb0; }
+  .ty { color: #2f6f5b; }
+  .st { color: #a8582a; }
+  .cm { color: var(--muted); font-style: italic; }
+
+  /* strings */
+  .strings { display: flex; flex-direction: column; gap: 16px; margin-bottom: 4px; }
+  .strip-label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .strip-label .tag { font-size: 10px; padding: 1px 7px; border: 1px solid var(--line-strong); }
+  .tag.build { color: var(--build); border-color: var(--build); }
+  .tag.spend { color: var(--spend); border-color: var(--spend); }
+  .strip { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ch {
+    width: 30px; height: 34px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--line); font-size: 15px; background: #fff; position: relative;
+    transition: transform .1s, border-color .1s, background .1s;
+  }
+  .ch.done { opacity: .32; }
+  .ch.cur { border-color: var(--ink); border-width: 2px; transform: translateY(-3px); }
+  .ch.cur.phase-build { border-color: var(--build); background: var(--build-bg); }
+  .ch.cur.phase-spend { border-color: var(--spend); background: var(--spend-bg); }
+  .ch.cur.phase-fail  { border-color: var(--fail); background: var(--fail-bg); }
+  .empty-note { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* map */
+  .map-grid { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
+  .entry {
+    display: flex; align-items: stretch; border: 1.5px solid var(--line-strong);
+    font-size: 14px; overflow: hidden; transition: transform .12s;
+  }
+  .entry .k {
+    padding: 6px 10px; background: #efe9d9; border-right: 1.5px solid var(--line-strong);
+    font-weight: 500; min-width: 30px; text-align: center;
+  }
+  .entry .v { padding: 6px 12px; min-width: 34px; text-align: center; background: #fff; }
+  .entry.touched { border-color: var(--ink); transform: scale(1.06); }
+  .entry.touched .v { background: var(--highlight); }
+  .entry.touched.phase-build { border-color: var(--build); }
+  .entry.touched.phase-build .v { background: var(--build-bg); }
+  .entry.touched.phase-spend { border-color: var(--spend); }
+  .entry.touched.phase-spend .v { background: var(--spend-bg); }
+  .entry.zero .v { color: var(--muted); }
+  .map-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* narration */
+  .narrate {
+    margin-top: 18px; border: 1.5px solid var(--line-strong); background: var(--panel);
+    padding: 14px 16px; min-height: 76px;
+  }
+  .phase-pill {
+    display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 2px 9px; margin-bottom: 8px; border: 1px solid;
+  }
+  .phase-pill.check { color: var(--check); border-color: var(--check); background: var(--check-bg); }
+  .phase-pill.build { color: var(--build); border-color: var(--build); background: var(--build-bg); }
+  .phase-pill.spend { color: var(--spend); border-color: var(--spend); background: var(--spend-bg); }
+  .phase-pill.fail  { color: var(--fail); border-color: var(--fail); background: var(--fail-bg); }
+  .phase-pill.pass  { color: var(--pass); border-color: var(--pass); background: var(--build-bg); }
+  .phase-pill.idle  { color: var(--muted); border-color: var(--line-strong); }
+  .narrate p { margin: 0; font-size: 14px; line-height: 1.6; }
+  .narrate .expr {
+    font-size: 12.5px; color: var(--muted); margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .narrate .expr b { color: var(--ink); font-weight: 500; }
+
+  .verdict {
+    margin-top: 18px; padding: 16px 18px; border: 2px solid; font-size: 15px;
+    display: none; align-items: center; gap: 12px;
+  }
+  .verdict.show { display: flex; }
+  .verdict.pass { border-color: var(--pass); background: var(--build-bg); color: var(--pass); }
+  .verdict.fail { border-color: var(--fail); background: var(--fail-bg); color: var(--fail); }
+  .verdict .big { font-size: 20px; font-weight: 500; }
+
+  .progress { font-size: 11px; color: var(--muted); margin-left: auto; align-self: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Leetcode 242 · step debugger</p>
+    <h1>Tracing <code>isAnagram</code> — the HashMap version</h1>
+    <p class="sub">Guard the lengths, fill the map while counting <b>s</b>, then drain it while consuming <b>t</b>. Every step maps to a highlighted line of code.</p>
+  </header>
+
+  <div class="inputs">
+    <div class="field">
+      <label for="sInput">s</label>
+      <input id="sInput" type="text" value="anagram" maxlength="16" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="tInput">t</label>
+      <input id="tInput" type="text" value="nagaram" maxlength="16" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <span class="hint">lowercase a–z only</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="load" class="primary">Load / reset</button>
+    <button id="prev">‹ Step back</button>
+    <button id="next">Step ›</button>
+    <button id="auto">Auto-run</button>
+    <button id="end">Skip to end »</button>
+    <span class="progress" id="progress"></span>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <h2>Code</h2>
+      <pre class="code" id="code"></pre>
+    </div>
+    <div class="card">
+      <h2>State</h2>
+      <div class="strings">
+        <div>
+          <div class="strip-label"><span>s</span><span class="tag build" id="stag">pass 1 · count</span></div>
+          <div class="strip" id="sstrip"></div>
+        </div>
+        <div>
+          <div class="strip-label"><span>t</span><span class="tag spend" id="ttag">pass 2 · consume</span></div>
+          <div class="strip" id="tstrip"></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="strip-label"><span>counts &nbsp;<span style="text-transform:none;letter-spacing:0;">HashMap&lt;Character,Integer&gt;</span></span></div>
+        <div class="map-grid" id="map"><span class="map-empty">empty — nothing counted yet</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="narrate" id="narrate">
+    <span class="phase-pill idle" id="pill">ready</span>
+    <p id="narr-text">Press <b>Load / reset</b>, then step through. First we guard the lengths; then the first loop counts every letter of <b>s</b>, and the second loop spends those counts against <b>t</b>.</p>
+    <div class="expr" id="narr-expr" style="display:none;"></div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <span class="big" id="verdict-big"></span>
+    <span id="verdict-text"></span>
+  </div>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">if</span> (s.length() != t.length()) {', id:'len-check'},
+  {t:'    <span class="kw">return</span> <span class="kw">false</span>;', id:'len-fail'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">Map</span>&lt;<span class="ty">Character</span>, <span class="ty">Integer</span>&gt; counts = <span class="kw">new</span> HashMap&lt;&gt;();', id:'init'},
+  {t:'', id:null},
+  {t:'<span class="kw">for</span> (<span class="ty">char</span> c : s.toCharArray()) {', id:'build-for'},
+  {t:'    counts.put(c, counts.getOrDefault(c, <span class="st">0</span>) + <span class="st">1</span>);', id:'build-body'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">for</span> (<span class="ty">char</span> c : t.toCharArray()) {', id:'spend-for'},
+  {t:'    <span class="ty">int</span> remaining = counts.getOrDefault(c, <span class="st">0</span>);', id:'spend-read'},
+  {t:'    <span class="kw">if</span> (remaining == <span class="st">0</span>) {', id:'spend-check'},
+  {t:'        <span class="kw">return</span> <span class="kw">false</span>;', id:'spend-fail'},
+  {t:'    }', id:null},
+  {t:'    counts.put(c, remaining - <span class="st">1</span>);', id:'spend-write'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">return</span> <span class="kw">true</span>;', id:'pass'},
+];
+
+const $ = id => document.getElementById(id);
+let steps = [], pos = -1, timer = null;
+
+function buildCode() {
+  $('code').innerHTML = CODE_LINES.map((l,i)=>
+    `<span class="ln" data-i="${i}">${l.t || '&nbsp;'}</span>`).join('');
+}
+buildCode();
+
+function computeSteps(s, t) {
+  const S = [];
+  const map = {};
+  const snap = () => ({...map});
+
+  // --- length guard ---
+  S.push({line:'len-check', phase:'check', map:snap(), sI:-1, tI:-1, touch:null,
+    text:`Compare lengths first: <b>s</b> has ${s.length}, <b>t</b> has ${t.length}.`,
+    expr:`if (${s.length} != ${t.length}) &nbsp;→&nbsp; <b>${s.length !== t.length}</b>`});
+  if (s.length !== t.length){
+    S.push({line:'len-fail', phase:'fail', map:snap(), sI:-1, tI:-1, touch:null,
+      text:'Different lengths, so the letters can never line up. Return <b>false</b> right away.',
+      expr:null, done:'fail', failKind:'len'});
+    return S;
+  }
+
+  S.push({line:'init', phase:'build', map:snap(), sI:-1, tI:-1, touch:null,
+    text:'Lengths match. Create an empty <b>counts</b> map — no letters tallied yet.',
+    expr:null});
+
+  // --- pass 1: count s ---
+  for (let i=0;i<s.length;i++){
+    const c = s[i];
+    S.push({line:'build-for', phase:'build', map:snap(), sI:i, tI:-1, touch:null,
+      text:`Loop pass 1, char <b>'${c}'</b> from <b>s</b>.`, expr:null});
+    const before = map[c] || 0;
+    map[c] = before + 1;
+    S.push({line:'build-body', phase:'build', map:snap(), sI:i, tI:-1, touch:c,
+      text:`Tally <b>'${c}'</b>: it was at ${before}, now it's ${before+1}.`,
+      expr:`counts.put('${c}', getOrDefault('${c}', 0) + 1) &nbsp;→&nbsp; <b>${before} + 1 = ${before+1}</b>`});
+  }
+
+  S.push({line:'build-for', phase:'build', map:snap(), sI:s.length, tI:-1, touch:null,
+    text:'Done counting <b>s</b>. The map now holds every letter s brings, with its multiplicity.', expr:null});
+
+  // --- pass 2: consume t ---
+  for (let i=0;i<t.length;i++){
+    const c = t[i];
+    S.push({line:'spend-for', phase:'spend', map:snap(), sI:-2, tI:i, touch:null,
+      text:`Loop pass 2, char <b>'${c}'</b> from <b>t</b>.`, expr:null});
+    const remaining = map[c] || 0;
+    S.push({line:'spend-read', phase:'spend', map:snap(), sI:-2, tI:i, touch:c,
+      text:`Look up how many <b>'${c}'</b> remain: <b>${remaining}</b>.`,
+      expr:`int remaining = counts.getOrDefault('${c}', 0) &nbsp;→&nbsp; <b>${remaining}</b>`});
+    if (remaining === 0){
+      S.push({line:'spend-check', phase:'fail', map:snap(), sI:-2, tI:i, touch:c,
+        text:`<b>remaining == 0</b> is true — <b>t</b> wants a <b>'${c}'</b> that <b>s</b> can't supply.`,
+        expr:`if (0 == 0) &nbsp;→&nbsp; <b>true</b>`});
+      S.push({line:'spend-fail', phase:'fail', map:snap(), sI:-2, tI:i, touch:c,
+        text:`The multisets differ, so they aren't anagrams. Return <b>false</b> immediately.`,
+        expr:null, done:'fail', failKind:'stock', badChar:c});
+      return S;
+    }
+    S.push({line:'spend-check', phase:'spend', map:snap(), sI:-2, tI:i, touch:c,
+      text:`<b>remaining == 0</b> is false (${remaining} left) — we can spend one.`,
+      expr:`if (${remaining} == 0) &nbsp;→&nbsp; <b>false</b>`});
+    map[c] = remaining - 1;
+    S.push({line:'spend-write', phase:'spend', map:snap(), sI:-2, tI:i, touch:c,
+      text:`Spend one <b>'${c}'</b>: ${remaining} → ${remaining-1} left.`,
+      expr:`counts.put('${c}', remaining - 1) &nbsp;→&nbsp; <b>${remaining} - 1 = ${remaining-1}</b>`});
+  }
+
+  S.push({line:'pass', phase:'pass', map:snap(), sI:-2, tI:t.length, touch:null,
+    text:'Every letter of <b>t</b> was covered and the inventory drained cleanly. Return <b>true</b>.',
+    expr:null, done:'pass'});
+  return S;
+}
+
+let S_STR = '', T_STR = '';
+
+function renderStrips() {
+  $('sstrip').innerHTML = S_STR.length
+    ? [...S_STR].map((c,i)=>`<span class="ch" data-s="${i}">${c}</span>`).join('')
+    : '<span class="empty-note">(empty s)</span>';
+  $('tstrip').innerHTML = T_STR.length
+    ? [...T_STR].map((c,i)=>`<span class="ch" data-t="${i}">${c}</span>`).join('')
+    : '<span class="empty-note">(empty t)</span>';
+}
+
+function render() {
+  const s = steps[pos];
+  if (!s) return;
+
+  document.querySelectorAll('.ln').forEach(el=>el.className='ln');
+  const li = CODE_LINES.findIndex(l=>l.id===s.line);
+  if (li>=0){
+    const el = document.querySelector(`.ln[data-i="${li}"]`);
+    el.classList.add('active','phase-'+s.phase);
+  }
+
+  document.querySelectorAll('[data-s]').forEach(el=>{
+    const i=+el.dataset.s; el.className='ch';
+    if (s.sI===-2 || (s.sI>i && s.sI>=0)) el.classList.add('done');
+    else if (i===s.sI) el.classList.add('cur','phase-'+(s.phase==='build'?'build':s.phase));
+  });
+  document.querySelectorAll('[data-t]').forEach(el=>{
+    const i=+el.dataset.t; el.className='ch';
+    if (s.tI>i) el.classList.add('done');
+    else if (i===s.tI) el.classList.add('cur','phase-'+s.phase);
+  });
+
+  const keys = Object.keys(s.map);
+  if (!keys.length){
+    $('map').innerHTML='<span class="map-empty">empty — nothing counted yet</span>';
+  } else {
+    $('map').innerHTML = keys.map(k=>{
+      const v=s.map[k];
+      const cls = ['entry'];
+      if (k===s.touch) cls.push('touched','phase-'+s.phase);
+      if (v===0) cls.push('zero');
+      return `<span class="${cls.join(' ')}"><span class="k">${k}</span><span class="v">${v}</span></span>`;
+    }).join('');
+  }
+
+  const pillMap = {check:['check','length guard'], build:['build','pass 1 · counting'],
+    spend:['spend','pass 2 · consuming'], fail:['fail','mismatch'], pass:['pass','anagram']};
+  const [pc,pt] = pillMap[s.phase] || ['idle','—'];
+  $('pill').className='phase-pill '+pc;
+  $('pill').textContent=pt;
+  $('narr-text').innerHTML=s.text;
+  if (s.expr){ $('narr-expr').style.display='block'; $('narr-expr').innerHTML=s.expr; }
+  else $('narr-expr').style.display='none';
+
+  const v=$('verdict');
+  if (s.done==='pass'){ v.className='verdict show pass'; $('verdict-big').textContent='true';
+    $('verdict-text').textContent='t is an anagram of s — same letters, same counts.'; }
+  else if (s.done==='fail'){ v.className='verdict show fail'; $('verdict-big').textContent='false';
+    $('verdict-text').textContent = s.failKind==='len'
+      ? 'Lengths differ — t can\'t be an anagram of s.'
+      : `t needs a '${s.badChar}' that s doesn't have (or already spent) — not an anagram.`; }
+  else v.className='verdict';
+
+  $('progress').textContent=`step ${pos+1} / ${steps.length}`;
+  $('prev').disabled = pos<=0;
+  $('next').disabled = pos>=steps.length-1;
+  $('end').disabled = pos>=steps.length-1;
+}
+
+function validate(v){ return /^[a-z]*$/.test(v); }
+
+function load() {
+  stopAuto();
+  const sv=$('sInput').value, tv=$('tInput').value;
+  let ok=true;
+  if(!validate(sv)){ $('sInput').classList.add('bad'); ok=false; } else $('sInput').classList.remove('bad');
+  if(!validate(tv)){ $('tInput').classList.add('bad'); ok=false; } else $('tInput').classList.remove('bad');
+  if(!ok){
+    $('pill').className='phase-pill fail'; $('pill').textContent='invalid input';
+    $('narr-text').innerHTML='Use lowercase letters a–z only (that\'s the problem\'s constraint, and what lets the counting logic stay simple).';
+    $('narr-expr').style.display='none'; $('verdict').className='verdict';
+    return;
+  }
+  S_STR=sv; T_STR=tv;
+  renderStrips();
+  steps=computeSteps(S_STR,T_STR);
+  pos=0;
+  render();
+}
+
+function next(){ if(pos<steps.length-1){pos++;render();} }
+function prev(){ if(pos>0){pos--;render();} }
+function end(){ stopAuto(); pos=steps.length-1; render(); }
+
+function stopAuto(){ if(timer){clearInterval(timer);timer=null;$('auto').textContent='Auto-run';$('auto').classList.remove('primary');} }
+function toggleAuto(){
+  if(timer){ stopAuto(); return; }
+  if(pos>=steps.length-1) return;
+  $('auto').textContent='Pause'; $('auto').classList.add('primary');
+  timer=setInterval(()=>{ if(pos>=steps.length-1){stopAuto();return;} next(); }, 750);
+}
+
+$('load').onclick=load;
+$('next').onclick=()=>{stopAuto();next();};
+$('prev').onclick=()=>{stopAuto();prev();};
+$('auto').onclick=toggleAuto;
+$('end').onclick=end;
+[$('sInput'),$('tInput')].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')load();}));
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight'){stopAuto();next();}
+  if(e.key==='ArrowLeft'){stopAuto();prev();}
+});
+
+load();
+</script>
+</body>
+</html>

@@ -58,9 +58,13 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     ├── keyboard-row/                   words typable with a single keyboard row
     │   ├── KeyboardRow.java
     │   └── keyboard_row_step_debugger.html
-    └── ransom-note/                    build a note from magazine letters with a hash map
+    ├── ransom-note/                    build a note from magazine letters with a hash map
+    │   ├── Solution.java
+    │   └── ransom_note_step_debugger.html
+    └── valid-anagram/                  check two strings are anagrams — two ways
         ├── Solution.java
-        └── ransom_note_step_debugger.html
+        ├── SolutionSorting.java
+        └── valid_anagram_step_debugger.html
 ```
 
 ---
@@ -107,6 +111,7 @@ javac *.java && java Main
 | 14 | Two sum — hash map | Java | [`java/two-sum`](java/two-sum) |
 | 15 | Keyboard row — words typable with a single keyboard row | Java | [`java/keyboard-row`](java/keyboard-row) |
 | 16 | Ransom note — build a note from magazine letters with a hash map | Java | [`java/ransom-note`](java/ransom-note) |
+| 17 | Valid anagram — hash-map tally & sorting | Java | [`java/valid-anagram`](java/valid-anagram) |
 
 ---
 
@@ -464,6 +469,34 @@ javac *.java && java Solution
 false
 false
 true
+true
+```
+
+---
+
+### 17. Valid Anagram · [`java/valid-anagram`](java/valid-anagram)
+
+Decides whether **t** is an anagram of **s** — the same letters, each used the same number of times, just reordered (LeetCode 242). Two independent takes on the same problem.
+
+- **What it does:** returns `true` when `s` and `t` contain exactly the same multiset of characters, otherwise `false`.
+- **How it works (hash-map tally, [`Solution.java`](java/valid-anagram/Solution.java)):** if the lengths differ it returns `false` up front. Otherwise a two-pass tally — the first loop counts each character of `s` into a `HashMap<Character, Integer>`, and the second loop spends those counts against `t`: a needed letter at `0` remaining means the multisets differ, so it returns `false`; surviving the whole of `t` returns `true`.
+- **How it works (sorting, [`SolutionSorting.java`](java/valid-anagram/SolutionSorting.java)):** splay both strings into `char[]`, `Arrays.sort` each, and `Arrays.equals` them. Anagrams collapse to the same sorted sequence; differing lengths are never equal, so no explicit length guard is needed.
+- **Complexity:** tally is time `O(n)`, space `O(k)` for the `k` distinct characters; sorting is time `O(n log n)`, space `O(n)` for the char arrays but no auxiliary map.
+- **Walkthrough:** open [`valid_anagram_step_debugger.html`](java/valid-anagram/valid_anagram_step_debugger.html) for a step-by-step debugger of the hash-map version — guard the lengths, fill the map while counting `s`, then drain it while consuming `t`, with every step mapped to a highlighted line of code. Type your own inputs to test.
+
+```bash
+cd java/valid-anagram
+javac *.java && java Solution && java SolutionSorting
+```
+
+```text
+true
+false
+false
+true
+true
+false
+false
 true
 ```
 
