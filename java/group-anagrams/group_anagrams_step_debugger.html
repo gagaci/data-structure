@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>groupAnagrams — step debugger</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f7f4ec;
+    --panel: #fffdf7;
+    --line: #ded8c7;
+    --line-strong: #c3bca6;
+    --muted: #6f6a5c;
+    --pick: #4a5a8a;      /* pick word phase — indigo */
+    --pick-bg: #e5e8f2;
+    --sort: #2f6f5b;      /* sort → key phase — green */
+    --sort-bg: #e2efe9;
+    --file: #a8582a;      /* file into bucket phase — clay/rust */
+    --file-bg: #f3e5da;
+    --pass: #2f6f5b;
+    --highlight: #f0d98a;
+    --mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    line-height: 1.5;
+    padding: 24px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  header { margin-bottom: 22px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 6px;
+  }
+  h1 { font-size: 22px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  h1 code { font-weight: 500; }
+  .sub { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+
+  .inputs {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+    margin: 20px 0 8px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 auto; }
+  .field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .field input {
+    font-family: var(--mono); font-size: 15px; padding: 8px 10px;
+    border: 1.5px solid var(--line-strong); background: var(--panel);
+    color: var(--ink); border-radius: 0; width: 100%;
+  }
+  .field input:focus { outline: 2px solid var(--highlight); outline-offset: 1px; }
+  .field input.bad { border-color: var(--file); }
+  .hint { font-size: 11px; color: var(--muted); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 24px; }
+  button {
+    font-family: var(--mono); font-size: 13px; padding: 8px 16px;
+    border: 1.5px solid var(--ink); background: var(--panel); color: var(--ink);
+    cursor: pointer; border-radius: 0; transition: transform .05s, background .12s;
+  }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.primary:hover:not(:disabled) { background: #000; }
+
+  .stage {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 18px;
+  }
+  @media (max-width: 760px) { .stage { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1.5px solid var(--line-strong);
+    padding: 16px 18px 18px;
+  }
+  .card h2 {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    margin: 0 0 14px; color: var(--muted); font-weight: 500;
+  }
+
+  /* code */
+  pre.code { margin: 0; font-size: 12.5px; line-height: 1.8; white-space: pre; overflow-x: auto; }
+  .ln { display: block; padding: 1px 8px; margin: 0 -8px; border-left: 3px solid transparent; }
+  .ln.active { background: var(--highlight); border-left-color: var(--ink); }
+  .ln.active.phase-pick { background: var(--pick-bg); border-left-color: var(--pick); }
+  .ln.active.phase-sort { background: var(--sort-bg); border-left-color: var(--sort); }
+  .ln.active.phase-file { background: var(--file-bg); border-left-color: var(--file); }
+  .kw { color: #7a4fb0; }
+  .ty { color: #2f6f5b; }
+  .st { color: #a8582a; }
+  .cm { color: var(--muted); font-style: italic; }
+
+  /* input words */
+  .words { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .word {
+    padding: 5px 10px; border: 1.5px solid var(--line); background: #fff;
+    font-size: 14px; transition: transform .1s, border-color .1s, background .1s;
+  }
+  .word.done { opacity: .34; }
+  .word.cur { border-color: var(--pick); background: var(--pick-bg); border-width: 2px; transform: translateY(-3px); }
+  .word.empty-lit { color: var(--muted); font-style: italic; }
+
+  /* sort strip */
+  .sortbox { margin-top: 16px; min-height: 74px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .ch {
+    width: 28px; height: 32px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--line); font-size: 15px; background: #fff;
+    transition: transform .1s, border-color .1s, background .1s;
+  }
+  .ch.sorted { border-color: var(--sort); background: var(--sort-bg); }
+  .arrow { color: var(--muted); font-size: 16px; padding: 0 4px; }
+  .keychip {
+    display: inline-flex; align-items: center; padding: 5px 10px; font-size: 15px;
+    border: 2px solid var(--sort); background: var(--sort-bg); font-weight: 500;
+  }
+  .sort-idle { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* map / buckets */
+  .buckets { display: flex; flex-direction: column; gap: 10px; min-height: 40px; }
+  .bucket {
+    display: flex; align-items: stretch; border: 1.5px solid var(--line-strong);
+    overflow: hidden; transition: transform .12s, border-color .12s;
+  }
+  .bucket .k {
+    padding: 8px 11px; background: #efe9d9; border-right: 1.5px solid var(--line-strong);
+    font-weight: 500; min-width: 52px; text-align: center; display: flex;
+    align-items: center; justify-content: center; font-size: 14px;
+  }
+  .bucket .vals {
+    padding: 8px 10px; background: #fff; display: flex; flex-wrap: wrap; gap: 5px;
+    align-items: center; flex: 1;
+  }
+  .bucket .vals .v {
+    padding: 2px 8px; border: 1px solid var(--line-strong); background: var(--paper);
+    font-size: 13px;
+  }
+  .bucket.touched { border-color: var(--file); transform: scale(1.015); }
+  .bucket.touched .k { background: var(--file-bg); }
+  .bucket.touched .vals .v.fresh { border-color: var(--file); background: var(--file-bg); font-weight: 500; }
+  .bucket.created { border-color: var(--sort); }
+  .bucket.created .k { background: var(--sort-bg); }
+  .map-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* narration */
+  .narrate {
+    margin-top: 18px; border: 1.5px solid var(--line-strong); background: var(--panel);
+    padding: 14px 16px; min-height: 76px;
+  }
+  .phase-pill {
+    display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 2px 9px; margin-bottom: 8px; border: 1px solid;
+  }
+  .phase-pill.pick { color: var(--pick); border-color: var(--pick); background: var(--pick-bg); }
+  .phase-pill.sort { color: var(--sort); border-color: var(--sort); background: var(--sort-bg); }
+  .phase-pill.file { color: var(--file); border-color: var(--file); background: var(--file-bg); }
+  .phase-pill.pass { color: var(--pass); border-color: var(--pass); background: var(--sort-bg); }
+  .phase-pill.idle { color: var(--muted); border-color: var(--line-strong); }
+  .narrate p { margin: 0; font-size: 14px; line-height: 1.6; }
+  .narrate .expr {
+    font-size: 12.5px; color: var(--muted); margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .narrate .expr b { color: var(--ink); font-weight: 500; }
+
+  .verdict {
+    margin-top: 18px; padding: 16px 18px; border: 2px solid var(--pass);
+    background: var(--sort-bg); color: var(--pass); font-size: 14px;
+    display: none; flex-direction: column; gap: 6px;
+  }
+  .verdict.show { display: flex; }
+  .verdict .big { font-size: 17px; font-weight: 500; }
+  .verdict .groups { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+
+  .progress { font-size: 11px; color: var(--muted); margin-left: auto; align-self: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Leetcode 49 · step debugger</p>
+    <h1>Tracing <code>groupAnagrams</code> — the sorted-key version</h1>
+    <p class="sub">For each word: sort its letters into a canonical <b>key</b>, then file the original word into that key's bucket. Anagrams share a key, so they land together. Every step maps to a highlighted line of code.</p>
+  </header>
+
+  <div class="inputs">
+    <div class="field">
+      <label for="wordsInput">strs — space or comma separated</label>
+      <input id="wordsInput" type="text" value="eat tea tan ate nat bat" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field" style="flex:0 0 auto;">
+      <span class="hint">lowercase a–z words</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="load" class="primary">Load / reset</button>
+    <button id="prev">‹ Step back</button>
+    <button id="next">Step ›</button>
+    <button id="auto">Auto-run</button>
+    <button id="end">Skip to end »</button>
+    <span class="progress" id="progress"></span>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <h2>Code</h2>
+      <pre class="code" id="code"></pre>
+    </div>
+    <div class="card">
+      <h2>State</h2>
+      <div>
+        <div class="strip-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">strs</div>
+        <div class="words" id="words"></div>
+      </div>
+      <div class="sortbox">
+        <div class="strip-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">sort → key</div>
+        <div class="strip" id="sortstrip"><span class="sort-idle">nothing sorting yet</span></div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="strip-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">map &nbsp;<span style="text-transform:none;letter-spacing:0;">HashMap&lt;String, List&lt;String&gt;&gt;</span></div>
+        <div class="buckets" id="map"><span class="map-empty">empty — no buckets yet</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="narrate" id="narrate">
+    <span class="phase-pill idle" id="pill">ready</span>
+    <p id="narr-text">Press <b>Load / reset</b>, then step through. For each word we sort its characters to get a canonical key, then drop the original word into that key's bucket.</p>
+    <div class="expr" id="narr-expr" style="display:none;"></div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <span class="big" id="verdict-big"></span>
+    <span id="verdict-text"></span>
+    <span class="groups" id="verdict-groups"></span>
+  </div>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">Map</span>&lt;<span class="ty">String</span>, <span class="ty">List</span>&lt;<span class="ty">String</span>&gt;&gt; map = <span class="kw">new</span> HashMap&lt;&gt;();', id:'init'},
+  {t:'', id:null},
+  {t:'<span class="kw">for</span> (<span class="ty">String</span> str : strs) {', id:'for'},
+  {t:'    <span class="ty">char</span>[] charArray = str.toCharArray();', id:'toChar'},
+  {t:'    Arrays.sort(charArray);', id:'sort'},
+  {t:'    <span class="ty">String</span> sortedKey = String.valueOf(charArray);', id:'key'},
+  {t:'    map.computeIfAbsent(sortedKey, k -&gt; <span class="kw">new</span> ArrayList&lt;&gt;()).add(str);', id:'file'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">return</span> <span class="kw">new</span> ArrayList&lt;&gt;(map.values());', id:'return'},
+];
+
+const $ = id => document.getElementById(id);
+let steps = [], pos = -1, timer = null;
+
+function buildCode() {
+  $('code').innerHTML = CODE_LINES.map((l,i)=>
+    `<span class="ln" data-i="${i}">${l.t || '&nbsp;'}</span>`).join('');
+}
+buildCode();
+
+// deep clone of the {key: [words]} bucket state
+function cloneMap(m){ const o={}; for(const k in m) o[k]=m[k].slice(); return o; }
+
+function computeSteps(words) {
+  const S = [];
+  const map = {};
+
+  S.push({line:'init', phase:'pick', wi:-1, sortState:null, map:cloneMap(map),
+    touch:null, created:null, fresh:null,
+    text:'Start with an empty <b>map</b>. Each key will be a sorted signature; each value the list of words that share it.',
+    expr:null});
+
+  for (let i=0;i<words.length;i++){
+    const word = words[i];
+
+    S.push({line:'for', phase:'pick', wi:i, sortState:null, map:cloneMap(map),
+      touch:null, created:null, fresh:null,
+      text:`Loop takes word <b>'${word || '""'}'</b> from <b>strs</b>.`, expr:null});
+
+    const chars = [...word];
+    S.push({line:'toChar', phase:'sort', wi:i, sortState:{chars, sorted:null, key:null}, map:cloneMap(map),
+      touch:null, created:null, fresh:null,
+      text:`Splay <b>'${word || '""'}'</b> into a char array so we can rearrange it.`,
+      expr:`str.toCharArray() &nbsp;→&nbsp; <b>[${chars.join(', ') || '—'}]</b>`});
+
+    const sorted = [...word].sort();
+    S.push({line:'sort', phase:'sort', wi:i, sortState:{chars:sorted, sorted:true, key:null}, map:cloneMap(map),
+      touch:null, created:null, fresh:null,
+      text:`Sort the characters. Every anagram of <b>'${word || '""'}'</b> sorts to this exact same order.`,
+      expr:`Arrays.sort(charArray) &nbsp;→&nbsp; <b>[${sorted.join(', ') || '—'}]</b>`});
+
+    const key = sorted.join('');
+    S.push({line:'key', phase:'sort', wi:i, sortState:{chars:sorted, sorted:true, key}, map:cloneMap(map),
+      touch:null, created:null, fresh:null,
+      text:`Glue the sorted characters back into the key <b>"${key}"</b>.`,
+      expr:`String.valueOf(charArray) &nbsp;→&nbsp; <b>"${key}"</b>`});
+
+    const existed = Object.prototype.hasOwnProperty.call(map, key);
+    if (!existed) map[key] = [];
+    map[key].push(word);
+    S.push({line:'file', phase:'file', wi:i, sortState:{chars:sorted, sorted:true, key}, map:cloneMap(map),
+      touch:key, created: existed ? null : key, fresh:word,
+      text: existed
+        ? `Key <b>"${key}"</b> already has a bucket — append <b>'${word || '""'}'</b> to it.`
+        : `Key <b>"${key}"</b> is new — computeIfAbsent creates its bucket, then adds <b>'${word || '""'}'</b>.`,
+      expr:`map.computeIfAbsent("${key}", …).add("${word}") &nbsp;→&nbsp; bucket "${key}" = [${map[key].map(w=>`'${w}'`).join(', ')}]`});
+  }
+
+  S.push({line:'return', phase:'pass', wi:words.length, sortState:null, map:cloneMap(map),
+    touch:null, created:null, fresh:null,
+    text:'Every word is filed. Return the map\'s values — one list per anagram group.',
+    expr:null, done:true, groups:Object.values(map)});
+  return S;
+}
+
+let WORDS = [];
+
+function renderWords() {
+  $('words').innerHTML = WORDS.length
+    ? WORDS.map((w,i)=>`<span class="word" data-w="${i}">${w===''?'<span class="empty-lit">""</span>':w}</span>`).join('')
+    : '<span class="sort-idle">(no words)</span>';
+}
+
+function render() {
+  const s = steps[pos];
+  if (!s) return;
+
+  document.querySelectorAll('.ln').forEach(el=>el.className='ln');
+  const li = CODE_LINES.findIndex(l=>l.id===s.line);
+  if (li>=0){
+    document.querySelector(`.ln[data-i="${li}"]`).classList.add('active','phase-'+s.phase);
+  }
+
+  // input words
+  document.querySelectorAll('[data-w]').forEach(el=>{
+    const i=+el.dataset.w; el.className='word';
+    if (i<s.wi) el.classList.add('done');
+    else if (i===s.wi) el.classList.add('cur');
+  });
+
+  // sort strip
+  if (!s.sortState){
+    $('sortstrip').innerHTML='<span class="sort-idle">nothing sorting yet</span>';
+  } else {
+    const {chars, sorted, key} = s.sortState;
+    let html = chars.length
+      ? chars.map(c=>`<span class="ch${sorted?' sorted':''}">${c}</span>`).join('')
+      : '<span class="ch">∅</span>';
+    if (key!==null){
+      html += `<span class="arrow">→</span><span class="keychip">"${key}"</span>`;
+    }
+    $('sortstrip').innerHTML = html;
+  }
+
+  // buckets
+  const keys = Object.keys(s.map);
+  if (!keys.length){
+    $('map').innerHTML='<span class="map-empty">empty — no buckets yet</span>';
+  } else {
+    $('map').innerHTML = keys.map(k=>{
+      const cls=['bucket'];
+      if (k===s.touch) cls.push('touched');
+      if (k===s.created) cls.push('created');
+      const vals = s.map[k].map((w,idx)=>{
+        const isFresh = k===s.touch && w===s.fresh && idx===s.map[k].length-1;
+        return `<span class="v${isFresh?' fresh':''}">${w===''?'""':w}</span>`;
+      }).join('');
+      return `<span class="${cls.join(' ')}"><span class="k">"${k}"</span><span class="vals">${vals}</span></span>`;
+    }).join('');
+  }
+
+  const pillMap = {pick:['pick','take next word'], sort:['sort','sort → key'],
+    file:['file','file into bucket'], pass:['pass','all grouped']};
+  const [pc,pt] = pillMap[s.phase] || ['idle','—'];
+  $('pill').className='phase-pill '+pc;
+  $('pill').textContent=pt;
+  $('narr-text').innerHTML=s.text;
+  if (s.expr){ $('narr-expr').style.display='block'; $('narr-expr').innerHTML=s.expr; }
+  else $('narr-expr').style.display='none';
+
+  const v=$('verdict');
+  if (s.done){
+    v.className='verdict show';
+    $('verdict-big').textContent=`${s.groups.length} group${s.groups.length===1?'':'s'} found`;
+    $('verdict-text').textContent='Each bucket is one cluster of anagrams (order between groups doesn\'t matter).';
+    $('verdict-groups').innerHTML='[' + s.groups.map(g=>'['+g.map(w=>w===''?'""':w).join(', ')+']').join(', ') + ']';
+  } else v.className='verdict';
+
+  $('progress').textContent=`step ${pos+1} / ${steps.length}`;
+  $('prev').disabled = pos<=0;
+  $('next').disabled = pos>=steps.length-1;
+  $('end').disabled = pos>=steps.length-1;
+}
+
+function parseWords(v){
+  return v.split(/[\s,]+/).filter(x=>x.length>0);
+}
+function validate(v){ return /^[a-z]*$/.test(v); }
+
+function load() {
+  stopAuto();
+  const raw = $('wordsInput').value;
+  const parsed = parseWords(raw);
+  const bad = parsed.filter(w=>!validate(w));
+  if (bad.length){
+    $('wordsInput').classList.add('bad');
+    $('pill').className='phase-pill file'; $('pill').textContent='invalid input';
+    $('narr-text').innerHTML='Use lowercase letters a–z only (that\'s the problem\'s constraint). Separate words with spaces or commas.';
+    $('narr-expr').style.display='none'; $('verdict').className='verdict';
+    return;
+  }
+  $('wordsInput').classList.remove('bad');
+  WORDS = parsed.length ? parsed : [''];
+  renderWords();
+  steps=computeSteps(WORDS);
+  pos=0;
+  render();
+}
+
+function next(){ if(pos<steps.length-1){pos++;render();} }
+function prev(){ if(pos>0){pos--;render();} }
+function end(){ stopAuto(); pos=steps.length-1; render(); }
+
+function stopAuto(){ if(timer){clearInterval(timer);timer=null;$('auto').textContent='Auto-run';$('auto').classList.remove('primary');} }
+function toggleAuto(){
+  if(timer){ stopAuto(); return; }
+  if(pos>=steps.length-1) return;
+  $('auto').textContent='Pause'; $('auto').classList.add('primary');
+  timer=setInterval(()=>{ if(pos>=steps.length-1){stopAuto();return;} next(); }, 850);
+}
+
+$('load').onclick=load;
+$('next').onclick=()=>{stopAuto();next();};
+$('prev').onclick=()=>{stopAuto();prev();};
+$('auto').onclick=toggleAuto;
+$('end').onclick=end;
+$('wordsInput').addEventListener('keydown',e=>{if(e.key==='Enter')load();});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight'){stopAuto();next();}
+  if(e.key==='ArrowLeft'){stopAuto();prev();}
+});
+
+load();
+</script>
+</body>
+</html>
