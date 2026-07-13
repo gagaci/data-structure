@@ -61,10 +61,13 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     ├── ransom-note/                    build a note from magazine letters with a hash map
     │   ├── Solution.java
     │   └── ransom_note_step_debugger.html
-    └── valid-anagram/                  check two strings are anagrams — two ways
+    ├── valid-anagram/                  check two strings are anagrams — two ways
+    │   ├── Solution.java
+    │   ├── SolutionSorting.java
+    │   └── valid_anagram_step_debugger.html
+    └── group-anagrams/                 cluster anagrams together with a sorted-key hash map
         ├── Solution.java
-        ├── SolutionSorting.java
-        └── valid_anagram_step_debugger.html
+        └── group_anagrams_step_debugger.html
 ```
 
 ---
@@ -112,6 +115,7 @@ javac *.java && java Main
 | 15 | Keyboard row — words typable with a single keyboard row | Java | [`java/keyboard-row`](java/keyboard-row) |
 | 16 | Ransom note — build a note from magazine letters with a hash map | Java | [`java/ransom-note`](java/ransom-note) |
 | 17 | Valid anagram — hash-map tally & sorting | Java | [`java/valid-anagram`](java/valid-anagram) |
+| 18 | Group anagrams — sorted-key hash map | Java | [`java/group-anagrams`](java/group-anagrams) |
 
 ---
 
@@ -498,6 +502,28 @@ true
 false
 false
 true
+```
+
+---
+
+### 18. Group Anagrams · [`java/group-anagrams`](java/group-anagrams)
+
+Clusters an array of strings so that words which are anagrams of each other end up in the same group (LeetCode 49).
+
+- **What it does:** given `["eat", "tea", "tan", "ate", "nat", "bat"]`, returns `[[eat, tea, ate], [tan, nat], [bat]]` — one list per set of anagrams, in any order.
+- **How it works:** the trick is a **canonical key** that every anagram shares. Sorting a word's characters collapses all of its anagrams to the same sorted string (`eat`, `tea`, `ate` all become `aet`). Walk the words once, and for each one sort its characters into that key, then `computeIfAbsent` files the original word under the key — creating the bucket the first time a key is seen and reusing it after. The map's values are the finished groups.
+- **Complexity:** time `O(n · k log k)` for `n` words of average length `k` (the per-word sort dominates), space `O(n · k)` for the map.
+- **Walkthrough:** open [`group_anagrams_step_debugger.html`](java/group-anagrams/group_anagrams_step_debugger.html) for a step-by-step debugger — watch each word get sorted into its key and dropped into a bucket, with buckets forming and filling as anagrams collide on the same key, every step mapped to a highlighted line of code. Type your own words to test.
+
+```bash
+cd java/group-anagrams
+javac *.java && java Solution
+```
+
+```text
+[[eat, tea, ate], [bat], [tan, nat]]
+[[]]
+[[a]]
 ```
 
 ---
