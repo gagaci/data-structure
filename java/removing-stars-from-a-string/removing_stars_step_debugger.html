@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>removeStars — step debugger</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f7f4ec;
+    --panel: #fffdf7;
+    --line: #ded8c7;
+    --line-strong: #c3bca6;
+    --muted: #6f6a5c;
+    --push: #4a5a8a;      /* push a letter — indigo */
+    --push-bg: #e5e8f2;
+    --pop: #a8582a;       /* star pops the top — clay/rust */
+    --pop-bg: #f3e5da;
+    --pass: #2f6f5b;
+    --pass-bg: #e2efe9;
+    --bad: #b23a2e;
+    --highlight: #f0d98a;
+    --mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    line-height: 1.5;
+    padding: 24px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  header { margin-bottom: 22px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 6px;
+  }
+  h1 { font-size: 22px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  h1 code { font-weight: 500; }
+  .sub { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+
+  .inputs {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+    margin: 20px 0 8px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 auto; }
+  .field label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .field input {
+    font-family: var(--mono); font-size: 15px; padding: 8px 10px;
+    border: 1.5px solid var(--line-strong); background: var(--panel);
+    color: var(--ink); border-radius: 0; width: 100%;
+  }
+  .field input:focus { outline: 2px solid var(--highlight); outline-offset: 1px; }
+  .field input.bad { border-color: var(--pop); }
+  .hint { font-size: 11px; color: var(--muted); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 24px; }
+  button {
+    font-family: var(--mono); font-size: 13px; padding: 8px 16px;
+    border: 1.5px solid var(--ink); background: var(--panel); color: var(--ink);
+    cursor: pointer; border-radius: 0; transition: transform .05s, background .12s;
+  }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.primary:hover:not(:disabled) { background: #000; }
+
+  .stage {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 18px;
+  }
+  @media (max-width: 760px) { .stage { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1.5px solid var(--line-strong);
+    padding: 16px 18px 18px;
+  }
+  .card h2 {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    margin: 0 0 14px; color: var(--muted); font-weight: 500;
+  }
+
+  /* code */
+  pre.code { margin: 0; font-size: 12.5px; line-height: 1.8; white-space: pre; overflow-x: auto; }
+  .ln { display: block; padding: 1px 8px; margin: 0 -8px; border-left: 3px solid transparent; }
+  .ln.active { background: var(--highlight); border-left-color: var(--ink); }
+  .ln.active.phase-push { background: var(--push-bg); border-left-color: var(--push); }
+  .ln.active.phase-pop { background: var(--pop-bg); border-left-color: var(--pop); }
+  .ln.active.phase-build { background: var(--pass-bg); border-left-color: var(--pass); }
+  .kw { color: #7a4fb0; }
+  .ty { color: #2f6f5b; }
+  .st { color: #a8582a; }
+  .cm { color: var(--muted); font-style: italic; }
+
+  /* input string */
+  .chars { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .cbox {
+    width: 30px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--line); background: #fff; font-size: 17px;
+    transition: transform .1s, border-color .1s, background .1s;
+  }
+  .cbox.done { opacity: .3; }
+  .cbox.cur { border-color: var(--push); background: var(--push-bg); border-width: 2px; transform: translateY(-3px); }
+  .cbox.cur.star { border-color: var(--pop); background: var(--pop-bg); }
+  .cbox.star { color: var(--pop); font-weight: 700; }
+  .chars-idle { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* stack */
+  .stackbox { margin-top: 18px; }
+  .stack {
+    display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 5px;
+    min-height: 46px; border-left: 3px solid var(--line-strong); padding: 4px 0 4px 12px;
+  }
+  .cell {
+    width: 44px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--line-strong); background: #fff; font-size: 18px;
+    transition: transform .12s, border-color .12s, background .12s;
+  }
+  .cell.pushed { border-color: var(--push); background: var(--push-bg); border-width: 2px; transform: scale(1.05); }
+  .cell.popping { border-color: var(--pop); background: var(--pop-bg); border-width: 2px; text-decoration: line-through; }
+  .stack-empty { font-size: 12px; color: var(--muted); font-style: italic; align-self: center; }
+  .stack-label {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .stack-label .top-note { text-transform: none; letter-spacing: 0; color: var(--pop); }
+
+  /* result string */
+  .resultbox { margin-top: 18px; }
+  .result {
+    display: flex; flex-wrap: wrap; gap: 5px; min-height: 40px; align-items: center;
+  }
+  .rcell {
+    width: 30px; height: 34px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--pass); background: var(--pass-bg); font-size: 16px;
+  }
+  .result-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* narration */
+  .narrate {
+    margin-top: 18px; border: 1.5px solid var(--line-strong); background: var(--panel);
+    padding: 14px 16px; min-height: 76px;
+  }
+  .phase-pill {
+    display: inline-block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 2px 9px; margin-bottom: 8px; border: 1px solid;
+  }
+  .phase-pill.push { color: var(--push); border-color: var(--push); background: var(--push-bg); }
+  .phase-pill.pop { color: var(--pop); border-color: var(--pop); background: var(--pop-bg); }
+  .phase-pill.build { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
+  .phase-pill.pass { color: var(--pass); border-color: var(--pass); background: var(--pass-bg); }
+  .phase-pill.idle { color: var(--muted); border-color: var(--line-strong); }
+  .narrate p { margin: 0; font-size: 14px; line-height: 1.6; }
+  .narrate .expr {
+    font-size: 12.5px; color: var(--muted); margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .narrate .expr b { color: var(--ink); font-weight: 500; }
+
+  .verdict {
+    margin-top: 18px; padding: 16px 18px; border: 2px solid var(--pass);
+    background: var(--pass-bg); color: var(--pass); font-size: 14px;
+    display: none; flex-direction: column; gap: 6px;
+  }
+  .verdict.show { display: flex; }
+  .verdict .big { font-size: 17px; font-weight: 500; }
+  .verdict .big code { background: #fff; padding: 1px 7px; border: 1px solid var(--pass); }
+
+  .progress { font-size: 11px; color: var(--muted); margin-left: auto; align-self: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Leetcode 2390 · step debugger</p>
+    <h1>Tracing <code>removeStars</code> — the stack version</h1>
+    <p class="sub">Walk the string once. Push every letter onto the stack; each <b>*</b> pops the top letter — the closest one to its left. Whatever survives, read bottom-to-top, is the answer. Every step maps to a highlighted line of code.</p>
+  </header>
+
+  <div class="inputs">
+    <div class="field">
+      <label for="strInput">s — letters and stars</label>
+      <input id="strInput" type="text" value="leet**code" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field" style="flex:0 0 auto;">
+      <span class="hint">lowercase a–z and *</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="load" class="primary">Load / reset</button>
+    <button id="prev">‹ Step back</button>
+    <button id="next">Step ›</button>
+    <button id="auto">Auto-run</button>
+    <button id="end">Skip to end »</button>
+    <span class="progress" id="progress"></span>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <h2>Code</h2>
+      <pre class="code" id="code"></pre>
+    </div>
+    <div class="card">
+      <h2>State</h2>
+      <div>
+        <div class="stack-label">s &nbsp;<span style="text-transform:none;letter-spacing:0;">— current char highlighted</span></div>
+        <div class="chars" id="chars"></div>
+      </div>
+      <div class="stackbox">
+        <div class="stack-label">stack &nbsp;<span class="top-note">top ↑ is what a star removes</span></div>
+        <div class="stack" id="stack"><span class="stack-empty">empty</span></div>
+      </div>
+      <div class="resultbox">
+        <div class="stack-label">result &nbsp;<span style="text-transform:none;letter-spacing:0;">— built from the stack at the end</span></div>
+        <div class="result" id="result"><span class="result-empty">(built once the walk finishes)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="narrate" id="narrate">
+    <span class="phase-pill idle" id="pill">ready</span>
+    <p id="narr-text">Press <b>Load / reset</b>, then step through. Letters get pushed; each <b>*</b> pops the top of the stack.</p>
+    <div class="expr" id="narr-expr" style="display:none;"></div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <span class="big" id="verdict-big"></span>
+    <span id="verdict-text"></span>
+  </div>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="ty">Stack</span>&lt;<span class="ty">Character</span>&gt; stack = <span class="kw">new</span> Stack&lt;&gt;();', id:'init'},
+  {t:'', id:null},
+  {t:'<span class="kw">for</span> (<span class="ty">char</span> c : s.toCharArray()) {', id:'for'},
+  {t:'    <span class="kw">if</span> (c == <span class="st">\'*\'</span>) {', id:'ifStar'},
+  {t:'        stack.pop();', id:'pop'},
+  {t:'    } <span class="kw">else</span> {', id:'else'},
+  {t:'        stack.add(c);', id:'push'},
+  {t:'    }', id:null},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="ty">StringBuilder</span> sb = <span class="kw">new</span> StringBuilder();', id:'sb'},
+  {t:'<span class="kw">for</span> (<span class="ty">char</span> c : stack) {', id:'forBuild'},
+  {t:'    sb.append(c);', id:'append'},
+  {t:'}', id:null},
+  {t:'<span class="kw">return</span> sb.toString();', id:'return'},
+];
+
+const $ = id => document.getElementById(id);
+let steps = [], pos = -1, timer = null;
+let CHARS = [];
+
+function buildCode() {
+  $('code').innerHTML = CODE_LINES.map((l,i)=>
+    `<span class="ln" data-i="${i}">${l.t || '&nbsp;'}</span>`).join('');
+}
+buildCode();
+
+function computeSteps(chars) {
+  const S = [];
+  const stack = [];
+
+  S.push({line:'init', phase:'push', ci:-1, stack:[], mark:null, built:0,
+    text:'Start with an empty <b>stack</b>. It will hold the letters kept so far — the top is always the most recent one, the one a star would delete.',
+    expr:null});
+
+  for (let i=0;i<chars.length;i++){
+    const c = chars[i];
+    S.push({line:'for', phase: c==='*' ? 'pop' : 'push', ci:i, stack:stack.slice(), mark:null, built:0,
+      text:`Read character <b>'${c}'</b> at index ${i}.`, expr:null});
+
+    if (c === '*'){
+      S.push({line:'ifStar', phase:'pop', ci:i, stack:stack.slice(), mark:null, built:0,
+        text:`<b>'${c}'</b> is a star — it deletes the closest kept letter to its left, which is the top of the stack.`,
+        expr:`c == '*' → true`});
+      const removed = stack[stack.length-1];
+      S.push({line:'pop', phase:'pop', ci:i, stack:stack.slice(), mark:{type:'popping', idx:stack.length-1}, built:0,
+        text:`Pop <b>'${removed}'</b> off the top — the star cancels it out, and the star itself vanishes too.`,
+        expr:`stack.pop() → '${removed}'`});
+      stack.pop();
+    } else {
+      S.push({line:'else', phase:'push', ci:i, stack:stack.slice(), mark:null, built:0,
+        text:`<b>'${c}'</b> is a normal letter — keep it.`,
+        expr:`c == '*' → false`});
+      stack.push(c);
+      S.push({line:'push', phase:'push', ci:i, stack:stack.slice(), mark:{type:'pushed', idx:stack.length-1}, built:0,
+        text:`Push <b>'${c}'</b> onto the stack. It's now the top — the next star would remove it.`,
+        expr:`stack.add('${c}') → [${stack.join(' ')}]`});
+    }
+  }
+
+  // build phase
+  S.push({line:'sb', phase:'build', ci:chars.length, stack:stack.slice(), mark:null, built:0,
+    text:'The walk is done. Now collect the survivors into a <b>StringBuilder</b>, reading the stack bottom-to-top so the letters stay in their original order.',
+    expr:`stack = [${stack.join(' ') || '∅'}]`});
+
+  for (let k=0;k<stack.length;k++){
+    S.push({line:'forBuild', phase:'build', ci:chars.length, stack:stack.slice(), mark:{type:'build', idx:k}, built:k,
+      text:`Take stack element ${k} from the bottom: <b>'${stack[k]}'</b>.`, expr:null});
+    S.push({line:'append', phase:'build', ci:chars.length, stack:stack.slice(), mark:{type:'build', idx:k}, built:k+1,
+      text:`Append <b>'${stack[k]}'</b> to the result.`,
+      expr:`sb → "${stack.slice(0,k+1).join('')}"`});
+  }
+
+  S.push({line:'return', phase:'pass', ci:chars.length, stack:stack.slice(), mark:null, built:stack.length,
+    text: stack.length
+      ? `Return the finished string — every star has consumed its neighbour.`
+      : `Every letter was cancelled by a star, so the result is the empty string.`,
+    expr:`return "${stack.join('')}"`,
+    done:true, result:stack.join('')});
+  return S;
+}
+
+function renderChars() {
+  $('chars').innerHTML = CHARS.length
+    ? CHARS.map((c,i)=>`<span class="cbox${c==='*'?' star':''}" data-c="${i}">${c}</span>`).join('')
+    : '<span class="chars-idle">(empty string)</span>';
+}
+
+function render() {
+  const s = steps[pos];
+  if (!s) return;
+
+  document.querySelectorAll('.ln').forEach(el=>el.className='ln');
+  const li = CODE_LINES.findIndex(l=>l.id===s.line);
+  if (li>=0){
+    document.querySelector(`.ln[data-i="${li}"]`).classList.add('active','phase-'+s.phase);
+  }
+
+  // input chars
+  document.querySelectorAll('[data-c]').forEach(el=>{
+    const i=+el.dataset.c;
+    el.className='cbox' + (CHARS[i]==='*'?' star':'');
+    if (i<s.ci) el.classList.add('done');
+    else if (i===s.ci){
+      el.classList.add('cur');
+      if (CHARS[i]==='*') el.classList.add('star');
+    }
+  });
+
+  // stack (rendered bottom-up via column-reverse; top is last element)
+  if (!s.stack.length){
+    $('stack').innerHTML='<span class="stack-empty">empty</span>';
+  } else {
+    $('stack').innerHTML = s.stack.map((c,idx)=>{
+      const cls=['cell'];
+      if (s.mark && s.mark.idx===idx && s.phase!=='build'){
+        if (s.mark.type==='pushed') cls.push('pushed');
+        else if (s.mark.type==='popping') cls.push('popping');
+      }
+      return `<span class="${cls.join(' ')}">${c}</span>`;
+    }).join('');
+  }
+
+  // result
+  if (!s.built){
+    $('result').innerHTML = s.phase==='build' || s.done
+      ? '<span class="result-empty">(empty)</span>'
+      : '<span class="result-empty">(built once the walk finishes)</span>';
+  } else {
+    $('result').innerHTML = s.stack.slice(0,s.built)
+      .map(c=>`<span class="rcell">${c}</span>`).join('');
+  }
+
+  const pillMap = {push:['push','push letter'], pop:['pop','star → pop'],
+    build:['build','build result'], pass:['pass','done']};
+  const [pc,pt] = pillMap[s.phase] || ['idle','—'];
+  $('pill').className='phase-pill '+pc;
+  $('pill').textContent=pt;
+  $('narr-text').innerHTML=s.text;
+  if (s.expr){ $('narr-expr').style.display='block'; $('narr-expr').innerHTML=s.expr; }
+  else $('narr-expr').style.display='none';
+
+  const v=$('verdict');
+  if (s.done){
+    v.className = 'verdict show';
+    $('verdict-big').innerHTML = s.result.length
+      ? `result → <code>"${s.result}"</code>`
+      : `result → <code>""</code> (empty)`;
+    $('verdict-text').textContent = 'Each star removed the character immediately to its left; the leftover letters, in order, are the answer.';
+  } else v.className='verdict';
+
+  $('progress').textContent=`step ${pos+1} / ${steps.length}`;
+  $('prev').disabled = pos<=0;
+  $('next').disabled = pos>=steps.length-1;
+  $('end').disabled = pos>=steps.length-1;
+}
+
+function validate(v){
+  if (!/^[a-z*]*$/.test(v)) return false;
+  // a leading star (or one with nothing to pop) would throw EmptyStackException
+  let depth = 0;
+  for (const c of v){
+    if (c==='*'){ if (depth===0) return false; depth--; }
+    else depth++;
+  }
+  return true;
+}
+
+function load() {
+  stopAuto();
+  const raw = $('strInput').value;
+  if (!validate(raw)){
+    $('strInput').classList.add('bad');
+    $('pill').className='phase-pill pop'; $('pill').textContent='invalid input';
+    $('narr-text').innerHTML='Use only lowercase letters <b>a–z</b> and <b>*</b>, and make sure every <b>*</b> has a letter to its left to remove — otherwise <code>stack.pop()</code> throws on an empty stack. (LeetCode guarantees this.)';
+    $('narr-expr').style.display='none'; $('verdict').className='verdict';
+    return;
+  }
+  $('strInput').classList.remove('bad');
+  CHARS = raw.split('');
+  renderChars();
+  steps=computeSteps(CHARS);
+  pos=0;
+  render();
+}
+
+function next(){ if(pos<steps.length-1){pos++;render();} }
+function prev(){ if(pos>0){pos--;render();} }
+function end(){ stopAuto(); pos=steps.length-1; render(); }
+
+function stopAuto(){ if(timer){clearInterval(timer);timer=null;$('auto').textContent='Auto-run';$('auto').classList.remove('primary');} }
+function toggleAuto(){
+  if(timer){ stopAuto(); return; }
+  if(pos>=steps.length-1) return;
+  $('auto').textContent='Pause'; $('auto').classList.add('primary');
+  timer=setInterval(()=>{ if(pos>=steps.length-1){stopAuto();return;} next(); }, 850);
+}
+
+$('load').onclick=load;
+$('next').onclick=()=>{stopAuto();next();};
+$('prev').onclick=()=>{stopAuto();prev();};
+$('auto').onclick=toggleAuto;
+$('end').onclick=end;
+$('strInput').addEventListener('keydown',e=>{if(e.key==='Enter')load();});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight'){stopAuto();next();}
+  if(e.key==='ArrowLeft'){stopAuto();prev();}
+});
+
+load();
+</script>
+</body>
+</html>
