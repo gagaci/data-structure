@@ -69,7 +69,8 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     │   ├── Solution.java
     │   └── group_anagrams_step_debugger.html
     └── removing-stars-from-a-string/   apply '*' deletions with a stack
-        └── Solution.java
+        ├── Solution.java
+        └── removing_stars_step_debugger.html
 ```
 
 ---
@@ -538,6 +539,7 @@ Applies the `*` "delete the character to my left" rule and returns what's left (
 - **What it does:** given a string of lowercase letters and `*` characters, each `*` removes the closest non-star character to its left (and removes itself). Returns the resulting string.
 - **How it works:** a stack captures the last-in, first-out nature of the deletions. Walk the string once — push every letter, and on each `*` pop the top letter (the closest one to the left). Reading the leftover stack in insertion order yields the answer. The problem guarantees a letter always sits left of every star, so the pop is safe.
 - **Complexity:** time `O(n)`, space `O(n)`.
+- **Walkthrough:** open [`removing_stars_step_debugger.html`](java/removing-stars-from-a-string/removing_stars_step_debugger.html) for a step-by-step debugger — watch letters get pushed and each `*` pop the top of the stack, then the survivors get collected into the result, with every step mapped to a highlighted line of code. Type your own inputs to test.
 
 ```bash
 cd java/removing-stars-from-a-string
