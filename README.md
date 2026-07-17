@@ -65,9 +65,11 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     │   ├── Solution.java
     │   ├── SolutionSorting.java
     │   └── valid_anagram_step_debugger.html
-    └── group-anagrams/                 cluster anagrams together with a sorted-key hash map
-        ├── Solution.java
-        └── group_anagrams_step_debugger.html
+    ├── group-anagrams/                 cluster anagrams together with a sorted-key hash map
+    │   ├── Solution.java
+    │   └── group_anagrams_step_debugger.html
+    └── removing-stars-from-a-string/   apply '*' deletions with a stack
+        └── Solution.java
 ```
 
 ---
@@ -116,6 +118,7 @@ javac *.java && java Main
 | 16 | Ransom note — build a note from magazine letters with a hash map | Java | [`java/ransom-note`](java/ransom-note) |
 | 17 | Valid anagram — hash-map tally & sorting | Java | [`java/valid-anagram`](java/valid-anagram) |
 | 18 | Group anagrams — sorted-key hash map | Java | [`java/group-anagrams`](java/group-anagrams) |
+| 19 | Removing stars from a string — stack | Java | [`java/removing-stars-from-a-string`](java/removing-stars-from-a-string) |
 
 ---
 
@@ -524,6 +527,27 @@ javac *.java && java Solution
 [[eat, tea, ate], [bat], [tan, nat]]
 [[]]
 [[a]]
+```
+
+---
+
+### 19. Removing Stars From a String · [`java/removing-stars-from-a-string`](java/removing-stars-from-a-string)
+
+Applies the `*` "delete the character to my left" rule and returns what's left (LeetCode 2390).
+
+- **What it does:** given a string of lowercase letters and `*` characters, each `*` removes the closest non-star character to its left (and removes itself). Returns the resulting string.
+- **How it works:** a stack captures the last-in, first-out nature of the deletions. Walk the string once — push every letter, and on each `*` pop the top letter (the closest one to the left). Reading the leftover stack in insertion order yields the answer. The problem guarantees a letter always sits left of every star, so the pop is safe.
+- **Complexity:** time `O(n)`, space `O(n)`.
+
+```bash
+cd java/removing-stars-from-a-string
+javac *.java && java Solution
+```
+
+```text
+lecode
+
+abc
 ```
 
 ---
