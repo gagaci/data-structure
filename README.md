@@ -68,9 +68,12 @@ Every solution lives in its own folder, is cleaned up, and **compiles & runs on 
     ├── group-anagrams/                 cluster anagrams together with a sorted-key hash map
     │   ├── Solution.java
     │   └── group_anagrams_step_debugger.html
-    └── removing-stars-from-a-string/   apply '*' deletions with a stack
+    ├── removing-stars-from-a-string/   apply '*' deletions with a stack
+    │   ├── Solution.java
+    │   └── removing_stars_step_debugger.html
+    └── simplify-path/                  canonicalize a Unix path with a deque
         ├── Solution.java
-        └── removing_stars_step_debugger.html
+        └── simplify_path_step_debugger.html
 ```
 
 ---
@@ -120,6 +123,7 @@ javac *.java && java Main
 | 17 | Valid anagram — hash-map tally & sorting | Java | [`java/valid-anagram`](java/valid-anagram) |
 | 18 | Group anagrams — sorted-key hash map | Java | [`java/group-anagrams`](java/group-anagrams) |
 | 19 | Removing stars from a string — stack | Java | [`java/removing-stars-from-a-string`](java/removing-stars-from-a-string) |
+| 20 | Simplify path — deque as a stack | Java | [`java/simplify-path`](java/simplify-path) |
 
 ---
 
@@ -550,6 +554,30 @@ javac *.java && java Solution
 lecode
 
 abc
+```
+
+---
+
+### 20. Simplify Path · [`java/simplify-path`](java/simplify-path)
+
+Collapses an absolute Unix-style path into its canonical form (LeetCode 71).
+
+- **What it does:** given an absolute path with `.` (current directory), `..` (parent directory), and redundant slashes, returns the shortest equivalent canonical path — no trailing slash except for the root.
+- **How it works:** a deque used as a stack holds the resolved folders. Split the path on `/`, then walk the components — skip empty strings and `.`, `pollLast()` on `..` to step up (safely returning `null` on an empty deque so `/../` resolves to `/`), and `offerLast()` any real folder name. Joining the survivors with `/` and prefixing a `/` gives the answer.
+- **Complexity:** time `O(n)`, space `O(n)`.
+- **Walkthrough:** open [`simplify_path_step_debugger.html`](java/simplify-path/simplify_path_step_debugger.html) for a step-by-step debugger — watch the split components feed the deque one at a time, with folders pushed, `..` popping the tail, and `.`/empty segments skipped, every step mapped to a highlighted line of code. Type your own paths to test.
+
+```bash
+cd java/simplify-path
+javac *.java && java Solution
+```
+
+```text
+/c
+/home
+/home/foo
+/
+/...
 ```
 
 ---
